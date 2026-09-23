@@ -3,6 +3,24 @@
 # write-post installer for Mac/Linux - Multi-tool support
 
 REPO_URL="https://raw.githubusercontent.com/chat-prompt/write-post/main"
+SKILL_FILES=(
+    "SKILL.md"
+    "references/devlog-guide.md"
+    "references/seo-geo-brief.md"
+    "references/rules.md"
+    "references/post-templates.md"
+    "references/voice-default.md"
+    "references/_diagram.css"
+    "references/tpl-compare.html"
+    "references/tpl-two-roles.html"
+    "references/eli5-template.html"
+    "scripts/fetch-member-posts.mjs"
+    "scripts/check-gate.py"
+    "scripts/check-ai-tell.py"
+    "scripts/blur-region.py"
+    "scripts/capture-card.mjs"
+    "scripts/preview-mobile.mjs"
+)
 
 # Step 1: Select scope (global or project)
 echo "설치 위치를 선택하세요:"
@@ -98,14 +116,16 @@ install_tool() {
     esac
     
     [ -d "$target_dir" ] && rm -rf "$target_dir"
-    mkdir -p "$target_dir"
+    mkdir -p "$target_dir/references" "$target_dir/scripts"
     
-    if ! curl -fsSL "$REPO_URL/.claude/skills/write-post/SKILL.md" -o "$target_dir/SKILL.md"; then
-        echo "ERROR: Failed to download SKILL.md for $label" >&2
-        exit 1
-    fi
+    for f in "${SKILL_FILES[@]}"; do
+        if ! curl -fsSL "$REPO_URL/.claude/skills/write-post/$f" -o "$target_dir/$f"; then
+            echo "ERROR: Failed to download $f for $label" >&2
+            exit 1
+        fi
+    done
     
-    echo "✓ $label: $target_dir/SKILL.md"
+    echo "✓ $label: $target_dir (${#SKILL_FILES[@]}개 파일)"
 }
 
 # Step 3: Install selected tools

@@ -1,0 +1,101 @@
+/* 순수 도식 카드 — 글 흐름에 녹는 삽화 (PPT 껍데기 없음: 제목·부제·해설바 X)
+   캔버스는 도식 크기에 맞는 가로 카드. 본문 글이 설명을 맡고, 도식은 구조만 보여준다. */
+* { margin:0; padding:0; box-sizing:border-box; }
+html,body { width:1400px; }
+body {
+  font-family: "Pretendard","Apple SD Gothic Neo",-apple-system,sans-serif;
+  background: #fdf8f1;
+  color: #4a3f35;
+  display:flex; align-items:center; justify-content:center;
+  padding: 64px 72px;
+  -webkit-font-smoothing:antialiased;
+}
+.stage { width:100%; display:flex; align-items:center; justify-content:center; }
+.hl { color:#ea580c; }
+.zero { color:#16a34a; }
+
+/* ───────────────────────────────────────────────
+   표준 팔레트 (2026-06-20 — 멀티컬러 다양화)
+   베이지 캔버스는 고정. 그 위에 톤다운된 따뜻한 멀티컬러를 변수로 둔다.
+   유형마다 강조색을 다르게 골라 쓰면 도식이 서로 확연히 구별됨.
+   각 색은 [메인 / 진한 / 연한배경 / 글자] 4종 — gradient·행·배지에 일관 사용.
+   ─────────────────────────────────────────────── */
+:root {
+  /* 주황 (기본·실행·강조) */
+  --o:#ea580c; --o-d:#c2410c; --o-bg:#fff1e6; --o-tx:#b3744a;
+  /* 골드/앰버 (성장·축적·긍정) */
+  --gold:#d99a2b; --gold-d:#b87d18; --gold-bg:#fdf3dd; --gold-tx:#9c7a2e;
+  /* 청록/틸 (정리·시스템·차분) */
+  --teal:#0d9488; --teal-d:#0f766e; --teal-bg:#e3f4f1; --teal-tx:#2f7a72;
+  /* 세이지/그린 (자연·완성·해결) */
+  --sage:#5a9367; --sage-d:#467153; --sage-bg:#e8f1e6; --sage-tx:#4a6b50;
+  /* 로즈/코랄 (문제·우려·감정) */
+  --rose:#d6677a; --rose-d:#bd5167; --rose-bg:#fcebee; --rose-tx:#b05666;
+  /* 라벤더/퍼플 (아이디어·전략·발상) */
+  --lav:#8b7cc4; --lav-d:#6f5fab; --lav-bg:#efebf8; --lav-tx:#6a5b9c;
+  /* 블루/인디고 (분석·데이터·점검) */
+  --blue:#3b78c4; --blue-d:#2c5fa3; --blue-bg:#e7f0fb; --blue-tx:#3a6298;
+  /* 중립 (배경 행·비활성) */
+  --paper:#ffffff; --beige:#f8f1e7; --beige-d:#f1e6d6; --ink:#4a3f35; --mut:#a4917c;
+}
+
+/* ── 표준 컴포넌트 — 어느 도식이든 같은 골격 ───────────── */
+
+/* 흰 패널: 도식 묶음의 기본 그릇 (정렬·라운드·그림자 통일) */
+.panel {
+  background:var(--paper); border-radius:22px; padding:28px 26px;
+  box-shadow:0 12px 30px rgba(107,85,68,.12);
+}
+.panel.tint { background:#fffaf4; }                  /* 살짝 톤 깔린 패널 */
+
+/* 둥근 노드/스텝 카드 — gradient가 기본 (단색 박스 금지) */
+.node {
+  border-radius:20px; padding:24px 18px; text-align:center; color:#fff;
+  box-shadow:0 10px 24px rgba(107,85,68,.18);
+}
+.node .ic { font-size:44px; line-height:1; }
+.node .ko { font-size:24px; font-weight:800; margin-top:11px; line-height:1.25; }
+.node .d  { font-size:16px; font-weight:600; opacity:.92; margin-top:6px; line-height:1.4; }
+
+/* 흰 카드 속 베이지 행 (정돈된 목록 — 박스 나열 대체) */
+.row {
+  display:flex; align-items:center; gap:12px;
+  background:var(--beige); border-radius:13px; padding:14px 17px;
+  font-size:20px; font-weight:600; color:var(--ink); margin-bottom:10px;
+}
+.row:last-child { margin-bottom:0; }
+.row .ic { font-size:21px; width:26px; text-align:center; flex-shrink:0; }
+.row .yes { color:var(--sage-d); }
+.row .no  { color:var(--rose); text-decoration:line-through; opacity:.8; }
+
+/* 번호 배지 */
+.badge {
+  width:32px; height:32px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:17px; font-weight:800; color:#fff;
+}
+
+/* 연결 화살표 (가로) */
+.arrow { display:flex; align-items:center; justify-content:center; padding:0 6px; }
+.arrow::after {
+  content:""; width:0; height:0;
+  border-top:12px solid transparent; border-bottom:12px solid transparent;
+  border-left:18px solid #e0a87a;
+}
+
+/* 캡션 칩 (노드 아래 한 단어 라벨) */
+.chip {
+  font-size:14px; font-weight:700; color:var(--o-tx); background:var(--o-bg);
+  padding:5px 13px; border-radius:999px; display:inline-block;
+}
+
+/* ── 색 유틸 — node/badge/arrow에 색만 갈아끼움 ───────────── */
+.c-o    { background:linear-gradient(160deg,var(--o),var(--o-d)); }
+.c-gold { background:linear-gradient(160deg,var(--gold),var(--gold-d)); }
+.c-teal { background:linear-gradient(160deg,var(--teal),var(--teal-d)); }
+.c-sage { background:linear-gradient(160deg,var(--sage),var(--sage-d)); }
+.c-rose { background:linear-gradient(160deg,var(--rose),var(--rose-d)); }
+.c-lav  { background:linear-gradient(160deg,var(--lav),var(--lav-d)); }
+.c-blue { background:linear-gradient(160deg,var(--blue),var(--blue-d)); }
+/* 강조 노드: 한 단계 키우고 그림자 진하게 */
+.pop { transform:scale(1.05); box-shadow:0 16px 34px rgba(107,85,68,.28); }

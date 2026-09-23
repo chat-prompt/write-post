@@ -5,6 +5,24 @@
 $OutputEncoding = [System.Text.Encoding]::UTF8
 
 $RepoUrl = "https://raw.githubusercontent.com/chat-prompt/write-post/main"
+$SkillFiles = @(
+    "SKILL.md",
+    "references/devlog-guide.md",
+    "references/seo-geo-brief.md",
+    "references/rules.md",
+    "references/post-templates.md",
+    "references/voice-default.md",
+    "references/_diagram.css",
+    "references/tpl-compare.html",
+    "references/tpl-two-roles.html",
+    "references/eli5-template.html",
+    "scripts/fetch-member-posts.mjs",
+    "scripts/check-gate.py",
+    "scripts/check-ai-tell.py",
+    "scripts/blur-region.py",
+    "scripts/capture-card.mjs",
+    "scripts/preview-mobile.mjs"
+)
 
 # Tool selection menu
 [Console]::Write("어떤 도구에 설치할까요?`n")
@@ -94,16 +112,20 @@ function Install-Tool {
     if (Test-Path $TargetDir) {
         Remove-Item -Recurse -Force $TargetDir
     }
-    New-Item -ItemType Directory -Force -Path $TargetDir | Out-Null
+    New-Item -ItemType Directory -Force -Path "$TargetDir\references" | Out-Null
+    New-Item -ItemType Directory -Force -Path "$TargetDir\scripts" | Out-Null
     
-    try {
-        Invoke-WebRequest -Uri "$RepoUrl/.claude/skills/write-post/SKILL.md" -OutFile "$TargetDir\SKILL.md" -ErrorAction Stop
-    } catch {
-        Write-Host "ERROR: Failed to download SKILL.md for $($paths.Label)" -ForegroundColor Red
-        throw "Download failed for $($paths.Label)"
+    foreach ($f in $SkillFiles) {
+        $out = Join-Path $TargetDir ($f -replace '/', '\')
+        try {
+            Invoke-WebRequest -UseBasicParsing -Uri "$RepoUrl/.claude/skills/write-post/$f" -OutFile $out -ErrorAction Stop
+        } catch {
+            Write-Host "ERROR: Failed to download $f for $($paths.Label)" -ForegroundColor Red
+            throw "Download failed for $($paths.Label)"
+        }
     }
     
-    Write-Host "✓ $($paths.Label): $TargetDir\SKILL.md" -ForegroundColor Green
+    Write-Host "✓ $($paths.Label): $TargetDir ($($SkillFiles.Count)개 파일)" -ForegroundColor Green
 }
 
 # Install selected tools

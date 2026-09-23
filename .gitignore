@@ -8,3 +8,4 @@ AI_CASE_STUDY.md
 
 # Internal
 .sisyphus/
+__pycache__/
