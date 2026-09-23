@@ -38,7 +38,7 @@ AI 코딩 도구로 뭔가를 만들고 나면 "이거 어떻게 했더라?" 싶
 ### Mac / Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/daht-mad/write-post/main/install_mac.sh | bash
+curl -fsSL https://raw.githubusercontent.com/chat-prompt/write-post/main/install_mac.sh | bash
 ```
 
 설치 시 사용할 도구와 설치 위치를 선택할 수 있습니다.
@@ -46,7 +46,7 @@ curl -fsSL https://raw.githubusercontent.com/daht-mad/write-post/main/install_ma
 ### Windows (PowerShell)
 
 ```powershell
-iwr -useb https://raw.githubusercontent.com/daht-mad/write-post/main/install_win.ps1 | iex
+iwr -useb https://raw.githubusercontent.com/chat-prompt/write-post/main/install_win.ps1 | iex
 ```
 
 설치 시 사용할 도구와 설치 위치를 선택할 수 있습니다.

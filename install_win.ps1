@@ -4,7 +4,7 @@
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
 
-$RepoUrl = "https://raw.githubusercontent.com/daht-mad/write-post/main"
+$RepoUrl = "https://raw.githubusercontent.com/chat-prompt/write-post/main"
 
 # Tool selection menu
 [Console]::Write("어떤 도구에 설치할까요?`n")

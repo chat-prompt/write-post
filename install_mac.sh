@@ -2,7 +2,7 @@
 
 # write-post installer for Mac/Linux - Multi-tool support
 
-REPO_URL="https://raw.githubusercontent.com/daht-mad/write-post/main"
+REPO_URL="https://raw.githubusercontent.com/chat-prompt/write-post/main"
 
 # Step 1: Select scope (global or project)
 echo "설치 위치를 선택하세요:"
