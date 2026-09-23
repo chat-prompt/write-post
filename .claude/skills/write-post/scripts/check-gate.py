@@ -15,8 +15,10 @@ BLOCK = [
 ]
 # 공개 설정이면 괜찮은 주소: 알려만 준다
 CHECK_PUBLIC = [r"notion\.(so|site)", r"airtable\.com", r"docs\.google\.com", r"drive\.google\.com"]
-# 수백 편이 똑같이 달면 틀 흔적이 되는 소제목
-FIXED_H2 = [r"한\s*줄\s*요약", r"이런 분들?께", r"바쁘시면", r"문제\s*상황", r"사용한 도구", r"작업\s*과정", r"AI 활용 팁", r"앞으로의 계획", r"다른 업무에 적용", r"재사용 가능한 프롬프트", r"^결과(\s*\(After\))?$"]
+# 수백 편이 똑같이 달면 틀 흔적이 되는 소제목. 이름만 달랑 있을 때만 막는다("소개: 가계부를 왜" 는 통과)
+FIXED_H2 = [r"한\s*줄\s*요약", r"이런 분들?께 도움(돼요|이 돼요)?", r"바쁘시면.*", r"문제\s*상황(\s*\(?Before\)?)?", r"사용한 도구", r"작업\s*과정",
+            r"(이 과정에서 배운 )?AI 활용 팁!?", r"앞으로의 계획", r"다른 업무에 적용한다면\??", r"재사용 가능한 프롬프트", r"결과(\s*\(?After\)?)?", r"결과물",
+            r"소개", r"진행\s*방법", r"결과와 배운 점", r"배운 점", r"마무리", r"Before vs After"]
 LOCALPATH = r"(/Users/[A-Za-z0-9._-]+|/home/[A-Za-z0-9._-]+|C:\\\\Users\\\\[A-Za-z0-9._-]+)"
 
 def main():
@@ -43,11 +45,16 @@ def main():
         pos = title.find(a.keyword)
         check("제목에 검색어", 0 <= pos <= 20, f"'{a.keyword}' 위치 {pos} (앞 20자 안)")
     check("제목에 숫자", bool(re.search(r"\d", title)), title[:60])
-    check("제목에 발표자·행사·시리즈 표기 없음", not re.search(r"^\[[^\]]*\]|\([^)]*님[^)]*\)|\(\d+부\)|#\d+|\d+기\s", title), title[:60])
+    check("제목에 기수·시리즈 표기 없음", not re.search(r"\[[^\]]*\d+기[^\]]*\]|\(\d+부\)|#\d+", title), title[:60])
     check("제목 50자 이내", len(title) <= 50, f"{len(title)}자")
     h2s = [h.strip() for h in re.findall(r"^##\s+(.+)$", body, flags=re.M)]
-    fixed = [h for h in h2s if any(re.search(f, re.sub(r"^[^\w가-힣]+", "", h)) for f in FIXED_H2)]
-    check("틀 소제목 없음(내용으로 쓴 H2)", not fixed, f"{fixed[:3]}")
+    def bare(h):
+        h = re.sub(r"^[^\w가-힣]+|[^\w가-힣)!?]+$", "", h)      # 앞 이모지·번호 기호, 끝 기호 제거
+        h = re.sub(r"^\d+[.)]?\s*", "", h).strip()
+        return any(re.fullmatch(f, h, flags=re.I) for f in FIXED_H2)
+    fixed = [h for h in h2s if bare(h)]
+    check("틀 이름만 단 소제목 없음(\"소개: 내용\"처럼 쓰기)", not fixed, f"{fixed[:3]}")
+    warn("제목에 주차·과제 표기 없음(본문 첫 소제목 아래로)", not re.search(r"\d+\s*주차|과제|사례글", title), title[:60])
     # 2 첫 150자
     text = re.sub(r"^#.*$", "", body, flags=re.M)
     text = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", text)
