@@ -13,6 +13,11 @@ BLOCK = [
     r"localhost", r"127\.0\.0\.1", r"https?://[^/\s]+:\d{2,5}", r"[?&](token|key|api_key|access_token)=",
     r"ai-study\.gpters\.org", r"ai-toolkit\.gpters\.org", r"[a-z0-9-]+\.slack\.com", r"https?://admin\.", r"/admin(/|\b)",
 ]
+IPV4 = r"(?<![\d.])(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)(?![\d.])"
+# 베스트 사례 185편 중 39편에 남아 있던 초안 찌꺼기
+RESIDUE = [r"\(내용 입력\)", r"Tip:\s*사용한 프롬프트", r"이미지 삽입 위치", r"\[이미지\s*\d", r"🖼️\s*\[", r"📸\s*(?:\[|여기)", r"\(캡처\s*\d", r"\[화면\s*\d\]",
+           r"본인이 채워", r"넣으면 좋아요", r"여기 링크\]", r"게시판에 올리는 방법", r"업로드 안내", r"추천 이미지", r"알려주세요\.?\s*$",
+           r"시행착오를 겪었나요", r"도움이 필요한 부분이 있나요"]
 # 공개 설정이면 괜찮은 주소: 알려만 준다
 CHECK_PUBLIC = [r"notion\.(so|site)", r"airtable\.com", r"docs\.google\.com", r"drive\.google\.com"]
 # 수백 편이 똑같이 달면 틀 흔적이 되는 소제목. 이름만 달랑 있을 때만 막는다("소개: 가계부를 왜" 는 통과)
@@ -44,7 +49,6 @@ def main():
     if a.keyword:
         pos = title.find(a.keyword)
         check("제목에 검색어", 0 <= pos <= 20, f"'{a.keyword}' 위치 {pos} (앞 20자 안)")
-    check("제목에 숫자", bool(re.search(r"\d", title)), title[:60])
     check("제목에 기수·시리즈 표기 없음", not re.search(r"\[[^\]]*\d+기[^\]]*\]|\(\d+부\)|#\d+", title), title[:60])
     check("제목 50자 이내", len(title) <= 50, f"{len(title)}자")
     h2s = [h.strip() for h in re.findall(r"^##\s+(.+)$", body, flags=re.M)]
@@ -60,6 +64,9 @@ def main():
     text = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", text)
     lead = re.sub(r"\s+", " ", text).strip()[:150]
     check("첫 150자에 숫자", bool(re.search(r"\d", lead)), lead[:80])
+    first = re.split(r"(?<=[.!?요다])\s", lead, maxsplit=1)[0]
+    if a.keyword:
+        warn("첫 문장에 도구명(검색어 문장으로)", a.keyword in first, first[:60])
     if a.keyword:
         check("첫 150자에 검색어", a.keyword in lead, "메타 설명 구간")
     if a.keyword_en:
@@ -84,6 +91,10 @@ def main():
     check("남이 못 여는 링크 0", not hits, f"걸린 패턴 {len(hits)}개: {hits[:4]}")
     pub = [b for b in CHECK_PUBLIC if re.search(b, body)]
     warn("노션·구글 문서 링크 공개 설정", not pub, f"{len(pub)}종 있음, 공개로 열리는지 확인" if pub else "없음")
+    ips = re.findall(IPV4, body)
+    check("서버 IP 0", not ips, f"{ips[:3]}")
+    res = [m.group(0) for r in RESIDUE for m in [re.search(r, body, flags=re.M)] if m]
+    check("초안 찌꺼기 0(자리표시·양식 안내문·발행 메모)", not res, f"{res[:4]}")
     paths = re.findall(LOCALPATH, body)
     check("사용자 이름 든 절대 경로 0", not paths, f"{paths[:3]}")
     # 8 베터모드 형식

@@ -46,6 +46,10 @@ def main():
         check("비슷한 길이 3연속", same, same <= 3, "3 이하")
     ni_run = max((len(m) for m in re.findall(r"(?:[^.!?]*니다\.\s*){3,}", t)), default=0)
     check("~니다 문장 3연속 이상 덩어리", "있음" if ni_run else "없음", ni_run == 0, "없어야 함")
+    aph = re.findall(r"[가-힣A-Za-z']+(?:와|과|은|는)\s[^.\n]{0,20}(?:은|는)\s*다(?:르다|릅니다|른\s*거)|≠", t)
+    check("격언 맺음(A와 B는 다르다)", len(aph), len(aph) <= 1, "1 이하")
+    pov = re.findall(r"사용자에게\s*(?:정정|알렸|알려|보고|확인을|설명했|물었|되물)|사용자가\s*[\"“'‘][^\"”'’]{1,60}[\"”'’]\s*(?:라고|고)\s*(?:지적|물었|말했|요청했|했습니다|답했)|이유를 물었더니", t)
+    check("3인칭·AI 시점(사용자가, 이유를 물었더니)", len(pov), not pov, "0, 작성자가 1인칭으로")
     first = sents[0] if sents else ""
     bad = re.search(r"에 대해|오늘은|알아볼게요|알아보겠|최근 많은|소개합니다", first)
     check("첫 문장", "주제 설명형" if bad else "장면/답으로 시작", not bad, first[:40])
