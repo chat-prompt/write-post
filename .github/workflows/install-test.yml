@@ -51,11 +51,16 @@ jobs:
         run: |
           $env:WRITE_POST_REPO_URL = "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
           $env:WP_TOOLS = "claude"; $env:WP_SCOPE = "global"
+          # 1) 받은 스크립트 본문의 한글이 온전한가 (iwr 디코딩). '설치 완료'를 유니코드 이스케이프로 찾는다.
+          $content = (iwr -useb "$env:WRITE_POST_REPO_URL/install_win.ps1").Content
+          $needle = [regex]::Unescape('\uC124\uCE58 \uC644\uB8CC')
+          if ($content -notmatch $needle) { throw "korean text in downloaded script is broken" }
+          # 2) 콘솔을 UTF-8로 두고 실행했을 때 출력에 그 한글이 그대로 나오는가
+          chcp 65001 | Out-Null
           $log = (iwr -useb "$env:WRITE_POST_REPO_URL/install_win.ps1" | iex) *>&1 | Out-String
           $log
-          if ($log -match "[\u00c3\u00ec\u00eb\u00ea]") { throw "korean output looks garbled" }
-          if ($log -notmatch "write-post") { throw "no completion line" }
-          "OK: korean"
+          if ($log -notmatch $needle) { throw "korean output garbled on console" }
+          "OK: korean intact in script and in console output"
 
   windows-pwsh-7:
     runs-on: windows-latest
@@ -99,11 +104,16 @@ jobs:
         run: |
           $env:WRITE_POST_REPO_URL = "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
           $env:WP_TOOLS = "claude"; $env:WP_SCOPE = "global"
+          # 1) 받은 스크립트 본문의 한글이 온전한가 (iwr 디코딩). '설치 완료'를 유니코드 이스케이프로 찾는다.
+          $content = (iwr -useb "$env:WRITE_POST_REPO_URL/install_win.ps1").Content
+          $needle = [regex]::Unescape('\uC124\uCE58 \uC644\uB8CC')
+          if ($content -notmatch $needle) { throw "korean text in downloaded script is broken" }
+          # 2) 콘솔을 UTF-8로 두고 실행했을 때 출력에 그 한글이 그대로 나오는가
+          chcp 65001 | Out-Null
           $log = (iwr -useb "$env:WRITE_POST_REPO_URL/install_win.ps1" | iex) *>&1 | Out-String
           $log
-          if ($log -match "[\u00c3\u00ec\u00eb\u00ea]") { throw "korean output looks garbled" }
-          if ($log -notmatch "write-post") { throw "no completion line" }
-          "OK: korean"
+          if ($log -notmatch $needle) { throw "korean output garbled on console" }
+          "OK: korean intact in script and in console output"
 
   mac:
     runs-on: macos-latest
