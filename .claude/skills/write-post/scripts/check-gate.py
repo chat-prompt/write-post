@@ -49,6 +49,9 @@ def main():
     if a.keyword:
         pos = title.find(a.keyword)
         check("제목에 검색어", 0 <= pos <= 20, f"'{a.keyword}' 위치 {pos} (앞 20자 안)")
+    warn("제목 25~45자", 25 <= len(title) <= 45, f"{len(title)}자 (상위권 중앙값 32자)")
+    warn("제목에 소감형 표현 없음(써보기·해봤·후기·미니사례·청강)", not re.search(r"써보기|써봤|해봤|해보기|후기|미니사례|청강|도전기", title), f"'{title[:40]}' (경험은 본문의 숫자·캡처로)")
+    warn("제목에 연도·'완벽 가이드' 없음", not re.search(r"20\d\d|완벽 가이드|완벽 정리", title), "4~10위에 더 많은 패턴")
     check("제목에 기수·시리즈 표기 없음", not re.search(r"\[[^\]]*\d+기[^\]]*\]|\(\d+부\)|#\d+", title), title[:60])
     check("제목 50자 이내", len(title) <= 50, f"{len(title)}자")
     h2s = [h.strip() for h in re.findall(r"^##\s+(.+)$", body, flags=re.M)]
