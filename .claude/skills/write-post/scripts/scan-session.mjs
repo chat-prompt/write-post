@@ -43,17 +43,32 @@ function readClaudeCode() {
   const root = join(homedir(), '.claude', 'projects')
   if (!existsSync(root)) return { turns: [], files: [] }
   const since = Date.now() - days * 864e5
-  const encOf = p => p.replace(/[^A-Za-z0-9]/g, '-')
-  // 정확히 이 폴더의 세션 + 상위 폴더에서 띄운 세션(이 폴더를 언급한 블록만)
-  const dirs = []
-  let p = cwd
-  while (true) { const d = join(root, encOf(p)); if (existsSync(d)) dirs.push({ dir: d, exact: p === cwd }); const up = resolve(p, '..'); if (up === p || up === homedir() || up === '/') break; p = up }
+  // 폴더 이름(경로를 -로 바꾼 것)은 OS마다 규칙이 달라서 믿지 않는다. 각 기록 파일 앞부분의 "cwd" 값으로 고른다.
+  // 정확히 이 폴더의 세션 + 상위 폴더에서 띄운 세션(이 폴더를 언급한 요청만)
+  const norm = p => { let r = resolve(p); if (process.platform === 'win32') r = r.toLowerCase(); return r.replace(/[\\/]+$/, '') }
+  const me = norm(cwd); const SEP = process.platform === 'win32' ? '\\' : '/'
   const files = []
-  for (const { dir, exact } of dirs) for (const f of readdirSync(dir)) {
-    if (!f.endsWith('.jsonl') || f.startsWith('agent-')) continue
-    const full = join(dir, f); if (statSync(full).mtimeMs < since) continue
-    if (!exact) { const head = readFileSync(full, 'utf8'); if (!head.includes(cwd) && !head.includes(CWD_BASE)) continue }  // 이 폴더 얘기가 없는 상위 세션은 통째로 제외
-    files.push({ f: full, exact })
+  for (const d of readdirSync(root, { withFileTypes: true })) {
+    if (!d.isDirectory()) continue
+    const dir = join(root, d.name)
+    for (const f of readdirSync(dir)) {
+      if (!f.endsWith('.jsonl') || f.startsWith('agent-')) continue
+      const full = join(dir, f); if (statSync(full).mtimeMs < since) continue
+      // 앞 4MB 안에서 cwd를 찾는다(세션 첫머리에 큰 훅 기록이 있을 수 있다). 없으면 폴더 이름 규칙(경로의 기호를 -로)으로 짐작한다.
+      const m = firstLine(full, 4 * 1024 * 1024).match(/"cwd":"((?:[^"\\]|\\.)*)"/)
+      let scwd = null
+      if (m) { try { scwd = norm(JSON.parse('"' + m[1] + '"')) } catch {} }
+      if (!scwd) {
+        const encOf = q => q.replace(/[^A-Za-z0-9]/g, '-')
+        let q = cwd; scwd = null
+        while (true) { if (encOf(q) === d.name) { scwd = norm(q); break } const up = resolve(q, '..'); if (up === q) break; q = up }
+        if (!scwd) continue
+      }
+      const exact = scwd === me
+      if (!exact && !me.startsWith(scwd + SEP)) continue
+      if (!exact) { const head = readFileSync(full, 'utf8'); if (!head.includes(cwd) && !head.includes(CWD_BASE)) continue }  // 이 폴더 얘기가 없는 상위 세션은 통째로 제외
+      files.push({ f: full, exact })
+    }
   }
   // 이 폴더에서 띄운 세션이 하나라도 있으면 상위 폴더 세션은 보지 않는다(다른 작업이 섞인다).
   const hasExact = files.some(x => x.exact)
@@ -112,7 +127,8 @@ function readPaste(file) {
   const turns = []; let cur = null
   for (const line of raw.split('\n')) {
     // 화자 표시로 인정하는 꼴: "[나]", "나:", "나의 말:", "User:", "You said:", 또는 그 단어 하나만 있는 줄. "나중에…", "질문이…"처럼 본문 첫 단어는 잘라 내지 않는다.
-    const NAMES = '나|사용자|User|You|You said|나의 말|질문|AI|Assistant|ChatGPT|ChatGPT의 말|Claude|Gemini|제미나이|클로드|챗GPT|ChatGPT said|답변'
+    // 챗GPT 웹 복사: "나의 말:" / "ChatGPT의 말:", 영문: "You said:" / "ChatGPT said:", 제미나이: "You said" / "Gemini said", 클로드: 직접 붙인 [나]/[AI]
+    const NAMES = '나|사용자|User|You|You said|나의 말|질문|AI|Assistant|ChatGPT|ChatGPT의 말|ChatGPT said|Claude|Claude의 말|Claude said|클로드|클로드의 말|Gemini|Gemini의 말|Gemini said|제미나이|제미나이의 말|챗GPT|챗GPT의 말|Copilot|Copilot said|답변'
     const m = line.match(new RegExp(`^\\s*(?:\\[(${NAMES})\\]|(${NAMES})\\s*[:：]|(${NAMES}))\\s*(.*)$`, 'i'))
     const name = m && (m[1] || m[2] || m[3])
     const ok = m && (m[1] || m[2] || (m[3] && !m[4]))  // 대괄호, 콜론, 아니면 단독 행
@@ -127,9 +143,11 @@ function readPaste(file) {
 }
 
 // Codex CLI: ~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl. 첫 줄 session_meta의 cwd로 고른다. 파일이 아주 클 수 있어 줄 단위로 읽는다.
-function firstLine(f) {
-  const fd = openSync(f, 'r'); const buf = Buffer.alloc(65536); const n = readSync(fd, buf, 0, 65536, 0); closeSync(fd)
-  return buf.toString('utf8', 0, n).split('\n')[0]
+function firstLine(f, headBytes) {
+  const size = headBytes || 65536
+  const fd = openSync(f, 'r'); const buf = Buffer.alloc(size); const n = readSync(fd, buf, 0, size, 0); closeSync(fd)
+  const s = buf.toString('utf8', 0, n)
+  return headBytes ? s : s.split('\n')[0]
 }
 async function readCodex() {
   const root = join(homedir(), '.codex', 'sessions')
@@ -143,8 +161,9 @@ async function readCodex() {
     let meta; try { meta = JSON.parse(firstLine(f)) } catch { continue }
     const p = meta.payload || {}
     if (meta.type !== 'session_meta') continue
-    const scwd = resolve(p.cwd || '/nonexistent'); const exact = scwd === cwd
-    if (!exact && !cwd.startsWith(scwd + '/')) continue  // 상위 폴더에서 띄운 코덱스 세션은 허용, 아래에서 이 폴더 언급 블록만 남김
+    const normC = q => { let r = resolve(q); if (process.platform === 'win32') r = r.toLowerCase(); return r.replace(/[\\/]+$/, '') }
+    const scwd = normC(p.cwd || '/nonexistent'); const me = normC(cwd); const exact = scwd === me
+    if (!exact && !me.startsWith(scwd + (process.platform === 'win32' ? '\\' : '/'))) continue  // 상위 폴더에서 띄운 코덱스 세션은 허용, 아래에서 이 폴더 언급 요청만 남김
     if (p.source && typeof p.source === 'object' && p.source.subagent) continue  // 내부 보조 세션
     if (statSync(f).size > 400 * 1024 * 1024) { skipped.push(f); continue }
     mine.push({ f, exact })

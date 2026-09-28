@@ -12,6 +12,51 @@ jobs:
   windows-powershell-5:
     runs-on: windows-latest
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: skill scripts on windows (scanner, paste, tags, gate)
+        shell: powershell
+        run: |
+          $proj = "$env:USERPROFILE\proj-test"
+          New-Item -ItemType Directory -Force $proj | Out-Null
+          $sess = "$env:USERPROFILE\.claude\projects\anything-here"
+          New-Item -ItemType Directory -Force $sess | Out-Null
+          $cwdJson = ($proj -replace '\\','\\\\')
+          $lines = @(
+            '{"type":"queue-operation","operation":"enqueue","timestamp":"2026-09-28T01:00:00Z","content":"<task-notification>x</task-notification>"}',
+            ('{"type":"user","timestamp":"2026-09-28T01:00:01Z","cwd":"' + $cwdJson + '","message":{"content":[{"type":"text","text":"\uc5d1\uc140 \uc790\ub3d9\ud654 \ud574 \uc918"}]}}'),
+            '{"type":"assistant","timestamp":"2026-09-28T01:00:05Z","message":{"model":"claude-opus-5","usage":{"output_tokens":10},"content":[{"type":"text","text":"done"}]}}',
+            '{"type":"user","timestamp":"2026-09-28T01:03:00Z","message":{"content":[{"type":"text","text":"\uc544\ub2c8 \uadf8\uac70 \ub9d0\uace0"}]}}'
+          )
+          [IO.File]::WriteAllLines("$sess\s1.jsonl", $lines, (New-Object System.Text.UTF8Encoding $false))
+          $k = "$env:GITHUB_WORKSPACE\.claude\skills\write-post\scripts"
+          node "$k\scan-session.mjs" --cwd $proj --out "$proj\DEVLOG.md" --json "$proj\materials.json"
+          if ($LASTEXITCODE -ne 0) { throw "scan-session failed" }
+          $m = Get-Content "$proj\materials.json" -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($m.user_messages.Count -ne 2) { throw "expected 2 user messages, got $($m.user_messages.Count)" }
+          if ($m.first_request -ne ([regex]::Unescape('\uc5d1\uc140 \uc790\ub3d9\ud654 \ud574 \uc918'))) { throw "first_request wrong: $($m.first_request)" }
+          if ($m.stuck_moments.Count -lt 1) { throw "pushback not detected" }
+          "OK scanner (windows path via cwd field)"
+          # paste with CRLF, ChatGPT web copy format
+          $paste = "나의 말:`r`n리모션으로 인트로 만들어줘`r`n나중에 다시 볼게`r`nChatGPT의 말:`r`n네, 세로가 아니라 가로예요.`r`n나의 말:`r`n아니 그거 말고 세로로`r`n"
+          [IO.File]::WriteAllText("$proj\chat.txt", $paste, (New-Object System.Text.UTF8Encoding $false))
+          node "$k\scan-session.mjs" --paste "$proj\chat.txt" --out "$proj\D2.md" --json "$proj\m2.json"
+          if ($LASTEXITCODE -ne 0) { throw "paste scan failed" }
+          $m2 = Get-Content "$proj\m2.json" -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($m2.user_messages.Count -ne 2) { throw "paste: expected 2 user turns, got $($m2.user_messages.Count)" }
+          if ($m2.user_messages[0] -notmatch [regex]::Unescape('\ub098\uc911\uc5d0')) { throw "paste: body line starting with 나 was cut" }
+          if (-not $m2.stuck_moments[0].next_user) { throw "paste: next_user empty" }
+          "OK paste (CRLF, ChatGPT format)"
+          node "$k\find-tags.mjs" "24기" | Out-String | Tee-Object -Variable tags | Out-Null
+          if ($tags -notmatch "GEO") { throw "find-tags did not return study tags" }
+          "OK find-tags"
+          $md = "# 클로드 코드로 엑셀 자동화: 매주 2시간을 10분으로`n`n클로드 코드(Claude Code)로 엑셀 정리를 자동화했어요. 2026년 9월 28일에 한 작업이에요. 클로드 코드는 터미널에서 쓰는 AI 도구예요.`n`n## 왜 시작했나`n`n본문입니다.`n"
+          [IO.File]::WriteAllText("$proj\AI_CASE_STUDY.md", $md, (New-Object System.Text.UTF8Encoding $false))
+          python "$k\check-gate.py" "$proj\AI_CASE_STUDY.md" --keyword "클로드 코드" --keyword-en "Claude Code" | Out-String | Tee-Object -Variable gate | Out-Null
+          if ($gate -notmatch "2,000") { throw "check-gate did not run length check" }
+          python "$k\check-ai-tell.py" "$proj\AI_CASE_STUDY.md" | Out-Null
+          "OK python gates run on windows (exit code $LASTEXITCODE)"
       - name: install (global, claude+codex)
         shell: powershell
         run: |
@@ -64,6 +109,51 @@ jobs:
   windows-pwsh-7:
     runs-on: windows-latest
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: skill scripts on windows (scanner, paste, tags, gate)
+        shell: pwsh
+        run: |
+          $proj = "$env:USERPROFILE\proj-test"
+          New-Item -ItemType Directory -Force $proj | Out-Null
+          $sess = "$env:USERPROFILE\.claude\projects\anything-here"
+          New-Item -ItemType Directory -Force $sess | Out-Null
+          $cwdJson = ($proj -replace '\\','\\\\')
+          $lines = @(
+            '{"type":"queue-operation","operation":"enqueue","timestamp":"2026-09-28T01:00:00Z","content":"<task-notification>x</task-notification>"}',
+            ('{"type":"user","timestamp":"2026-09-28T01:00:01Z","cwd":"' + $cwdJson + '","message":{"content":[{"type":"text","text":"\uc5d1\uc140 \uc790\ub3d9\ud654 \ud574 \uc918"}]}}'),
+            '{"type":"assistant","timestamp":"2026-09-28T01:00:05Z","message":{"model":"claude-opus-5","usage":{"output_tokens":10},"content":[{"type":"text","text":"done"}]}}',
+            '{"type":"user","timestamp":"2026-09-28T01:03:00Z","message":{"content":[{"type":"text","text":"\uc544\ub2c8 \uadf8\uac70 \ub9d0\uace0"}]}}'
+          )
+          [IO.File]::WriteAllLines("$sess\s1.jsonl", $lines, (New-Object System.Text.UTF8Encoding $false))
+          $k = "$env:GITHUB_WORKSPACE\.claude\skills\write-post\scripts"
+          node "$k\scan-session.mjs" --cwd $proj --out "$proj\DEVLOG.md" --json "$proj\materials.json"
+          if ($LASTEXITCODE -ne 0) { throw "scan-session failed" }
+          $m = Get-Content "$proj\materials.json" -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($m.user_messages.Count -ne 2) { throw "expected 2 user messages, got $($m.user_messages.Count)" }
+          if ($m.first_request -ne ([regex]::Unescape('\uc5d1\uc140 \uc790\ub3d9\ud654 \ud574 \uc918'))) { throw "first_request wrong: $($m.first_request)" }
+          if ($m.stuck_moments.Count -lt 1) { throw "pushback not detected" }
+          "OK scanner (windows path via cwd field)"
+          # paste with CRLF, ChatGPT web copy format
+          $paste = "나의 말:`r`n리모션으로 인트로 만들어줘`r`n나중에 다시 볼게`r`nChatGPT의 말:`r`n네, 세로가 아니라 가로예요.`r`n나의 말:`r`n아니 그거 말고 세로로`r`n"
+          [IO.File]::WriteAllText("$proj\chat.txt", $paste, (New-Object System.Text.UTF8Encoding $false))
+          node "$k\scan-session.mjs" --paste "$proj\chat.txt" --out "$proj\D2.md" --json "$proj\m2.json"
+          if ($LASTEXITCODE -ne 0) { throw "paste scan failed" }
+          $m2 = Get-Content "$proj\m2.json" -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($m2.user_messages.Count -ne 2) { throw "paste: expected 2 user turns, got $($m2.user_messages.Count)" }
+          if ($m2.user_messages[0] -notmatch [regex]::Unescape('\ub098\uc911\uc5d0')) { throw "paste: body line starting with 나 was cut" }
+          if (-not $m2.stuck_moments[0].next_user) { throw "paste: next_user empty" }
+          "OK paste (CRLF, ChatGPT format)"
+          node "$k\find-tags.mjs" "24기" | Out-String | Tee-Object -Variable tags | Out-Null
+          if ($tags -notmatch "GEO") { throw "find-tags did not return study tags" }
+          "OK find-tags"
+          $md = "# 클로드 코드로 엑셀 자동화: 매주 2시간을 10분으로`n`n클로드 코드(Claude Code)로 엑셀 정리를 자동화했어요. 2026년 9월 28일에 한 작업이에요. 클로드 코드는 터미널에서 쓰는 AI 도구예요.`n`n## 왜 시작했나`n`n본문입니다.`n"
+          [IO.File]::WriteAllText("$proj\AI_CASE_STUDY.md", $md, (New-Object System.Text.UTF8Encoding $false))
+          python "$k\check-gate.py" "$proj\AI_CASE_STUDY.md" --keyword "클로드 코드" --keyword-en "Claude Code" | Out-String | Tee-Object -Variable gate | Out-Null
+          if ($gate -notmatch "2,000") { throw "check-gate did not run length check" }
+          python "$k\check-ai-tell.py" "$proj\AI_CASE_STUDY.md" | Out-Null
+          "OK python gates run on windows (exit code $LASTEXITCODE)"
       - name: install (global, claude+codex)
         shell: pwsh
         run: |
