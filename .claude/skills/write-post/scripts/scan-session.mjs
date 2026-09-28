@@ -179,7 +179,7 @@ for (let i = 0; i < turns.length; i++) {
     const nextU = turns.slice(i + 1).find(y => y.who === 'user' && y.text)
     if (nextU && STUCK.test(nextU.text)) stuck.push({ kind: 'tool_error', t: x.t, text: x.errors[0], next_user: null })
   }
-  if (x.who === 'user' && x.text && STUCK.test(x.text)) {
+  if (x.who === 'user' && x.text && x.text.length <= 600 && STUCK.test(x.text)) {  // 긴 붙여넣기는 되돌린 말이 아니다
     const prevAi = [...turns.slice(0, i)].reverse().find(y => y.who === 'ai' && y.text)
     stuck.push({ kind: 'user_pushback', t: x.t, text: x.text, before_ai: prevAi ? prevAi.text.slice(0, 800) : null })
   }
@@ -228,7 +228,7 @@ if (stamped.length >= 2 && firstReq && firstReq.t) {
 const lastAi = ais.length ? ais[ais.length - 1].text : ''
 const remaining = [
   ...users.filter(u => /(나중에|일단 빼|일단 넘어|다음에|보류|미루)/.test(u.text)).map(u => u.text),
-  ...(lastAi.match(/[^\n]*(아직|남은|다음 단계|미완|TODO|해야)[^\n]*/g) || []).slice(0, 5),
+  ...(ais.slice(-3).map(a => a.text).join('\n').match(/[^\n]*(아직|남은|남아|다음 단계|미완|TODO|해야|내일|확인은|확인이 안|못 (?:했|읽|봤)|안 됐|안 되)[^\n]*/g) || []).slice(0, 6),
 ]
 const materials = {
   source: paste ? 'paste' : sources.join('+'), files: files.map(f => basename(f)), cwd,
