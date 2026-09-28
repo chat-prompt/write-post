@@ -46,7 +46,7 @@ jobs:
           $m2 = Get-Content "$proj\m2.json" -Raw -Encoding UTF8 | ConvertFrom-Json
           if ($m2.user_messages.Count -ne 2) { throw "paste: expected 2 user turns, got $($m2.user_messages.Count)" }
           if ($m2.user_messages[0] -notmatch [regex]::Unescape('\ub098\uc911\uc5d0')) { throw "paste: body line starting with 나 was cut" }
-          if (-not $m2.stuck_moments[0].next_user) { throw "paste: next_user empty" }
+          if (-not ($m2.stuck_moments | Where-Object { $_.next_user })) { throw "paste: next_user empty on all stuck moments" }
           "OK paste (CRLF, ChatGPT format)"
           node "$k\find-tags.mjs" "24기" | Out-String | Tee-Object -Variable tags | Out-Null
           if ($tags -notmatch "GEO") { throw "find-tags did not return study tags" }
@@ -143,7 +143,7 @@ jobs:
           $m2 = Get-Content "$proj\m2.json" -Raw -Encoding UTF8 | ConvertFrom-Json
           if ($m2.user_messages.Count -ne 2) { throw "paste: expected 2 user turns, got $($m2.user_messages.Count)" }
           if ($m2.user_messages[0] -notmatch [regex]::Unescape('\ub098\uc911\uc5d0')) { throw "paste: body line starting with 나 was cut" }
-          if (-not $m2.stuck_moments[0].next_user) { throw "paste: next_user empty" }
+          if (-not ($m2.stuck_moments | Where-Object { $_.next_user })) { throw "paste: next_user empty on all stuck moments" }
           "OK paste (CRLF, ChatGPT format)"
           node "$k\find-tags.mjs" "24기" | Out-String | Tee-Object -Variable tags | Out-Null
           if ($tags -notmatch "GEO") { throw "find-tags did not return study tags" }

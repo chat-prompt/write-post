@@ -55,7 +55,7 @@ function readClaudeCode() {
       if (!f.endsWith('.jsonl') || f.startsWith('agent-')) continue
       const full = join(dir, f); if (statSync(full).mtimeMs < since) continue
       // 앞 4MB 안에서 cwd를 찾는다(세션 첫머리에 큰 훅 기록이 있을 수 있다). 없으면 폴더 이름 규칙(경로의 기호를 -로)으로 짐작한다.
-      const m = firstLine(full, 4 * 1024 * 1024).match(/"cwd":"((?:[^"\\]|\\.)*)"/)
+      const m = firstLine(full, 4 * 1024 * 1024).match(/"cwd"\s*:\s*"((?:[^"\\]|\\.)*)"/)
       let scwd = null
       if (m) { try { scwd = norm(JSON.parse('"' + m[1] + '"')) } catch {} }
       if (!scwd) {
