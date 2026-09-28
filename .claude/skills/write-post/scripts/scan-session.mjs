@@ -28,15 +28,16 @@ const mentionsCwd = x => {
   for (const tl of x.tools || []) if ((tl.path && tl.path.startsWith(cwd)) || (tl.cmd && (tl.cmd.includes(cwd) || tl.cmd.includes(CWD_BASE)))) return true
   return false
 }
-// 부모 폴더 세션의 턴은 30분 블록 단위로, 이 폴더를 언급한 블록만 남긴다.
+// 부모 폴더 세션은 요청 단위로 고른다: 사용자 요청 하나 + 그 뒤 AI가 한 일(다음 요청 전까지)을 한 묶음으로 보고,
+// 묶음 안 어디든 이 폴더가 언급되면 남긴다. 쉬지 않고 이어 한 다른 작업은 묶음이 달라서 빠진다.
 function keepRelevantBlocks(turns) {
-  const blocks = []; let cur = []
+  const spans = []; let cur = []
   for (const x of turns) {
-    if (cur.length && x.t && cur[cur.length - 1].t && x.t - cur[cur.length - 1].t > 30 * 60000) { blocks.push(cur); cur = [] }
+    if (x.who === 'user' && x.text && cur.length) { spans.push(cur); cur = [] }
     cur.push(x)
   }
-  if (cur.length) blocks.push(cur)
-  return blocks.filter(b => b.some(mentionsCwd)).flat()
+  if (cur.length) spans.push(cur)
+  return spans.filter(sp => sp.some(mentionsCwd)).flat()
 }
 function readClaudeCode() {
   const root = join(homedir(), '.claude', 'projects')
@@ -67,6 +68,7 @@ function readClaudeCode() {
       const t = d.timestamp ? new Date(d.timestamp) : null
       if (d.type === 'queue-operation' && d.operation === 'enqueue' && d.content) {
         const text = d.content.trim()
+        if (text.startsWith('<')) continue  // <task-notification> 같은 시스템 메시지
         queued.set(text, (queued.get(text) || 0) + 1)  // 뒤에 같은 user 레코드가 오면 그건 이 메시지의 짝이다
         fileTurns.push({ t, who: 'user', text, tools: [], errors: [], src: f, queued: true }); continue
       }
@@ -218,7 +220,8 @@ const MAX_REQ = Number(get('--max-requests', 80))
 }
 
 // ---------- 2. 재료 뽑기 ----------
-const users = turns.filter(x => x.who === 'user' && x.text && !x.text.startsWith('/'))
+const isSlashCmd = t => /^\/[A-Za-z][\w:-]*(\s|$)/.test(t) && !/^\/[^\s]*\//.test(t)  // /compact 는 명령, /tmp/a.txt 는 경로
+const users = turns.filter(x => x.who === 'user' && x.text && !isSlashCmd(x.text))
 const ais = turns.filter(x => x.who === 'ai')
 const firstReq = users.find(x => x.text.length >= 4) || users[0] || null
 const STUCK = /(안\s?돼|안\s?됨|안\s?나와|안\s?되네|안\s?되잖|안\s?열|안\s?보여|다시\s?(해|만들|찾|봐|돌)|아니야|아니 |아닌데|왜 안|왜 이래|뭐야|에러|오류|틀렸|실패|막혔|깨져|이상해|이상한데)/

@@ -55,6 +55,10 @@ fi
 # Step 2: Select tools
 if [ -n "$ARG_TOOLS" ]; then
     tool_choice=$(echo "$ARG_TOOLS" | sed -e 's/all/6/' -e 's/claude/1/g' -e 's/opencode/2/g' -e 's/codex/3/g' -e 's/gemini/4/g' -e 's/antigravity/5/g')
+    # 하나라도 못 알아들으면 멈춘다(claude,banana 같은 오타)
+    for item in $(echo "$tool_choice" | tr ',' ' '); do
+        case "$item" in 1|2|3|4|5|6) ;; *) echo "설치할 도구를 못 알아들었어요: '$item'. claude, codex, gemini, opencode, antigravity, all 중에서 적어 주세요." >&2; exit 1 ;; esac
+    done
 else
 echo ""
 echo "어떤 도구에 설치할까요?"

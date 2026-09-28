@@ -32,6 +32,9 @@ $SkillFiles = @(
 # Tool selection menu
 if ($env:WP_TOOLS) {
     $toolChoice = $env:WP_TOOLS.ToLower().Replace(" ","").Replace("all","6").Replace("claude","1").Replace("opencode","2").Replace("codex","3").Replace("gemini","4").Replace("antigravity","5")
+    foreach ($item in ($toolChoice -split ",")) {
+        if ($item -notmatch '^[1-6]$') { Write-Host "설치할 도구를 못 알아들었어요: '$item'. claude, codex, gemini, opencode, antigravity, all 중에서 적어 주세요." -ForegroundColor Red; exit 1 }
+    }
 } else {
 [Console]::Write("어떤 도구에 설치할까요?`n")
 [Console]::Write("1) Claude Code`n")
