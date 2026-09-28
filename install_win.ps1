@@ -19,6 +19,7 @@ $SkillFiles = @(
     "references/eli5-template.html",
     "scripts/fetch-member-posts.mjs",
     "scripts/find-tags.mjs",
+    "scripts/scan-session.mjs",
     "scripts/check-gate.py",
     "scripts/check-ai-tell.py",
     "scripts/blur-region.py",

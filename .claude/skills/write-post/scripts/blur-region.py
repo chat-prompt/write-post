@@ -48,9 +48,11 @@ def with_magick(a):
     cmd = [exe, a.src]
     if a.crop_top:
         cmd += ["-gravity", "north", "-chop", f"0x{a.crop_top}"]
+    # -region은 -scale에 안 먹어서 화면 전체가 흐려진다. 영역을 잘라 픽셀화·블러한 뒤 같은 자리에 합성한다.
     for (x, y, w, h) in boxes(a):
         y2 = max(0, y - a.crop_top)
-        cmd += ["-region", f"{w}x{h}+{x}+{y2}", "-scale", "8%", "-scale", "1250%", "-blur", f"0x{a.radius}", "+region"]
+        cmd += ["(", "+clone", "-crop", f"{w}x{h}+{x}+{y2}", "+repage", "-scale", "8%", "-resize", f"{w}x{h}!", "-blur", f"0x{a.radius}", ")",
+                "-geometry", f"+{x}+{y2}", "-composite"]
     cmd += [a.dst]
     subprocess.run(cmd, check=True)
     return "imagemagick"

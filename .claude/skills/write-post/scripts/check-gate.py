@@ -107,7 +107,7 @@ def main():
     h1 = re.findall(r"^#\s", body, flags=re.M)
     check("H1은 하나", len(h1) <= 1, f"{len(h1)}개")
     # 9 모바일 가독성
-    paras = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip() and not p.strip().startswith(("#", "-", "*", ">", "|", "```", "!", "<"))]
+    paras = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip() and not p.strip().startswith(("#", "-", "*", ">", "|", "```", "!", "<")) and not re.match(r"\d+[.)]\s", p.strip())]
     long_p = [p for p in paras if len(p) > 260]
     check("260자 넘는 문단 없음", not long_p, f"{len(long_p)}개 (첫 문단 {len(long_p[0]) if long_p else 0}자)")
     h2_pos = [m.start() for m in re.finditer(r"^##\s", body, flags=re.M)] + [len(body)]

@@ -44,8 +44,12 @@ def main():
         same = sum(1 for i in range(len(lens) - 2) if max(lens[i:i + 3]) - min(lens[i:i + 3]) <= 5)
         print(f"[정보] 문장 {len(lens)}개 · 평균 {statistics.mean(lens):.0f}자 · 길이 표준편차 {sd:.1f} (30 아래면 리듬이 균일함)")
         check("비슷한 길이 3연속", same, same <= 3, "3 이하")
-    ni_run = max((len(m) for m in re.findall(r"(?:[^.!?]*니다\.\s*){3,}", t)), default=0)
-    check("~니다 문장 3연속 이상 덩어리", "있음" if ni_run else "없음", ni_run == 0, "없어야 함")
+    # 습니다체 자체는 괜찮다. 같은 길이(±6자)의 ~니다 문장이 세 개 연속일 때만 잡는다(voice-default 1번).
+    ni_run = 0
+    for m in re.finditer(r"(?:[^.!?\n]*니다\.\s*){3,}", t):
+        ls = [len(s) for s in re.findall(r"[^.!?\n]*니다\.", m.group(0))]
+        if any(max(ls[i:i + 3]) - min(ls[i:i + 3]) <= 6 for i in range(len(ls) - 2)): ni_run += 1
+    check("같은 길이 ~니다 문장 3연속", ni_run, ni_run == 0, "0")
     aph = re.findall(r"[가-힣A-Za-z']+(?:와|과|은|는)\s[^.\n]{0,20}(?:은|는)\s*다(?:르다|릅니다|른\s*거)|≠", t)
     check("격언 맺음(A와 B는 다르다)", len(aph), len(aph) <= 1, "1 이하")
     pov = re.findall(r"사용자에게\s*(?:정정|알렸|알려|보고|확인을|설명했|물었|되물)|사용자가\s*[\"“'‘][^\"”'’]{1,60}[\"”'’]\s*(?:라고|고)\s*(?:지적|물었|말했|요청했|했습니다|답했)|이유를 물었더니", t)
