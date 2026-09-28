@@ -48,6 +48,7 @@ def with_magick(a):
     cmd = [exe, a.src]
     if a.crop_top:
         cmd += ["-gravity", "north", "-chop", f"0x{a.crop_top}"]
+    cmd += ["-gravity", "northwest"]  # 합성 좌표는 왼쪽 위 기준. north가 남아 있으면 엉뚱한 자리에 붙는다.
     # -region은 -scale에 안 먹어서 화면 전체가 흐려진다. 영역을 잘라 픽셀화·블러한 뒤 같은 자리에 합성한다.
     for (x, y, w, h) in boxes(a):
         y2 = max(0, y - a.crop_top)
