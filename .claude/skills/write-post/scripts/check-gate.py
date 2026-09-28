@@ -113,8 +113,8 @@ def main():
     h2_pos = [m.start() for m in re.finditer(r"^##\s", body, flags=re.M)] + [len(body)]
     gaps = [h2_pos[i + 1] - h2_pos[i] for i in range(len(h2_pos) - 1)] if len(h2_pos) > 1 else []
     check("H2 사이 900자 이하", all(g <= 900 for g in gaps) if gaps else False, f"H2 {len(h2_pos) - 1}개, 가장 긴 구간 {max(gaps) if gaps else 0}자")
-    code_long = [m for m in re.findall(r"```[^\n]*\n(.*?)```", body, flags=re.S) if m.count("\n") > 5]
-    check("코드블록 5줄 이하", not code_long, f"긴 코드블록 {len(code_long)}개")
+    code_long = [m for m in re.findall(r"```[^\n]*\n(.*?)```", body, flags=re.S) if m.strip("\n").count("\n") >= 8]
+    check("코드블록 8줄 이하(AI 출력은 5줄, 사람이 본다)", not code_long, f"긴 코드블록 {len(code_long)}개")
     # 10 이미지 픽셀 크기: 첫 이미지(히어로)는 가로형 허용, 나머지 본문 이미지는 가로/세로 1.6배 이하
     import struct
     base = os.path.dirname(os.path.abspath(a.src))

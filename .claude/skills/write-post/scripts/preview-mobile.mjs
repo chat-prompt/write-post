@@ -3,7 +3,7 @@
 // 사용법: node preview-mobile.mjs 초안.md [--out preview-mobile.png] [--width 390]
 // 마크다운 변환은 CDN의 marked를 쓴다(네트워크 필요). 이미지는 상대 경로면 초안 폴더 기준으로 보여준다.
 import path from "node:path";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, unlinkSync } from "node:fs";
 let chromium;
 async function loadPlaywright() {
   const tries = [() => import("playwright")];
@@ -46,4 +46,5 @@ await page.waitForTimeout(500);
 const h = await page.evaluate(() => document.body.scrollHeight);
 await page.screenshot({ path: out, fullPage: true });
 await browser.close();
+try { unlinkSync(tmp); } catch {}
 console.log(`saved ${out} (${width}px 폭, 전체 높이 ${h}px, 폰 화면 약 ${Math.ceil(h / 760)}장 분량)`);

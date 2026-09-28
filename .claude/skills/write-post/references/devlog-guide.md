@@ -42,10 +42,8 @@
 
 ### 저장 위치 컨벤션
 
-- **폴더**: `devlog/` (없으면 자동 생성)
-- **DEVLOG 파일명**: `YYMMDD-[DEVLOG]-{주제}.md`
-- **사례글 파일명**: `YYMMDD-[AICASE]-{주제}.md`
-- **예시**: `devlog/260130-[DEVLOG]-write-post-스킬개선.md`
+- 이 스킬에서는 **현재 폴더의 `./DEVLOG.md` 하나**만 쓴다(SKILL.md Phase 1). 아래 3.1.0의 `devlog/` 폴더·날짜 파일명 규칙은 쓰지 않는다.
+- (3.1.0 원문, 참고만) 폴더 `devlog/`, DEVLOG 파일명 `YYMMDD-[DEVLOG]-{주제}.md`, 사례글 파일명 `YYMMDD-[AICASE]-{주제}.md`
 
 ### 파일 분리 판단 로직
 
@@ -209,6 +207,9 @@ AI 코딩 도구와 함께 진행한 개발 작업 기록입니다.
 - **세션 위치**: `~/.claude/projects/{프로젝트경로를-로치환}/` 폴더
 - **파일 형식**: `.jsonl` 파일들 (agent-*.jsonl 제외)
 - **파싱 방법**: `type: 'user'` → 사용자 요청, `type: 'assistant'` → Claude 응답
+- **큐에 쌓인 메시지도 사용자 요청이다**: 에이전트가 일하는 동안 사용자가 보낸 말은 `type: 'queue-operation'`, `operation: 'enqueue'` 레코드의 `content`에만 남고 `type: 'user'` 레코드가 없을 수 있다. 시간순에 끼워 넣는다. 같은 내용이 뒤에 `user`로도 있으면 하나만 남긴다.
+- **압축 요약은 원문이 아니다**: `/compact` 뒤의 `user` 레코드 하나는 "This session is being continued…"로 시작하는 영어 요약이다. 대조용으로만 쓰고, 요청 원문·인용은 압축 전 레코드에서 가져온다.
+- **AskUserQuestion 답은 자유 입력일 수 있다**: `toolUseResult.answers`에 보기 번호가 아니라 사용자가 직접 친 문장(주소, 설명)이 들어 있으면 그대로 원문으로 쓴다.
 
 > **Windows 참고:**
 > - Claude Code는 Windows에서 Git Bash를 셸로 사용합니다. `process.platform`이 `win32`로 보고되더라도 **bash 문법**을 사용하세요 (CMD/PowerShell 문법 사용 금지).
@@ -393,7 +394,7 @@ Session (ses_*.json)          ← session_list/session_read로 접근 가능
 ### 정리 규칙
 
 1. **공통 필터링**:
-   - Claude Code: `<ide_opened_file>` 등 IDE 메타데이터 제외
+   - Claude Code: `<ide_opened_file>` 등 IDE 메타데이터, `<local-command-…>` 로컬 명령 출력, "This session is being continued…" 압축 요약 제외(요약은 대조용)
    - OpenCode: `[search-mode]`, `<session-context>` 등 시스템 메시지 제외
    - Codex CLI: 토큰 사용 통계, 내부 도구 호출 세부사항 제외
    - Gemini CLI: 도구 실행 로그 제외
@@ -429,16 +430,11 @@ Session (ses_*.json)          ← session_list/session_read로 접근 가능
 > 📍 **지금 여기: Phase 2 / 3 — DEVLOG 확인 중**
 > 진행 상황: ✅ Phase 1 완료 → ✅ Phase 2 진행 중 → ⬜ Phase 3
 
-**Phase 1 완료 — 더 잘하는 방법:**
-DEVLOG 생성 후 AI가 자동으로 개선 제안을 붙입니다. 예시:
-- 여러 도구의 세션이 있다면 → 병렬로 파싱하면 시간을 줄일 수 있습니다
-- 세션이 많다면 → 날짜 범위를 지정해서 최근 N일치만 파싱하는 옵션도 있습니다
+질문 문구와 순서는 **SKILL.md Phase 2를 따른다**(요약 보여주고 "빠지거나 틀린 게 있나요? 빼고 싶은 내용도…"를 한 번). 3.1.0의 "개선 제안 붙이기"(병렬 파싱, 날짜 범위 옵션 안내)는 하지 않는다.
 
-DEVLOG.md 생성이 완료되면:
-
-1. 사용자에게 "DEVLOG 확인하셨나요? 수정할 부분 있으면 말씀해주세요" 질문
-2. 수정 요청이 있으면 반영
-3. 사용자가 확인 완료하면 Phase 3로 진행
+1. DEVLOG 요약(작업 제목 목록, 재료 후보)을 보여준다
+2. 수정 요청이 있으면 반영하고 다시 보여준다
+3. 확인이 끝나면 Phase 3로 진행
 
 ## 수정 요청 예시
 
