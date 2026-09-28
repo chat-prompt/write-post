@@ -1,0 +1,79 @@
+name: install-test
+
+# 설치 스크립트를 실제 윈도우(PowerShell 5.1·7)와 맥(bash)에서 돌려 본다.
+# 파일 20개가 제자리에 오는지, 잘못된 도구 이름이면 멈추는지, 재설치 때 다른 파일이 남는지.
+on:
+  push:
+    branches: [member-seo-geo, main]
+    paths: [install_mac.sh, install_win.ps1, .claude/skills/write-post/**, .github/workflows/install-test.yml]
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        shell: [powershell, pwsh]   # powershell = Windows PowerShell 5.1, pwsh = PowerShell 7
+    steps:
+      - name: install (global, claude+codex)
+        shell: ${{ matrix.shell }}
+        run: |
+          $env:WRITE_POST_REPO_URL = "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
+          $env:WP_TOOLS = " Claude , codex "
+          $env:WP_SCOPE = "GLOBAL"
+          iwr -useb "$env:WRITE_POST_REPO_URL/install_win.ps1" | iex
+          $skill = "$env:USERPROFILE\.claude\skills\write-post"
+          if (-not (Test-Path "$skill\SKILL.md")) { throw "SKILL.md 없음" }
+          $n = (Get-ChildItem -Recurse -File $skill).Count
+          if ($n -ne 20) { throw "파일 수가 20이 아님: $n" }
+          if (-not (Test-Path "$env:USERPROFILE\.codex\skills\write-post\SKILL.md")) { throw "codex 설치 안 됨" }
+          "OK: $n files"
+      - name: reinstall keeps other files
+        shell: ${{ matrix.shell }}
+        run: |
+          $env:WRITE_POST_REPO_URL = "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
+          $skill = "$env:USERPROFILE\.claude\skills\write-post"
+          New-Item -ItemType Directory -Force "$skill\node_modules\x" | Out-Null
+          "keep" | Set-Content "$skill\my-note.md"
+          $env:WP_TOOLS = "claude"; $env:WP_SCOPE = "global"
+          iwr -useb "$env:WRITE_POST_REPO_URL/install_win.ps1" | iex
+          if (-not (Test-Path "$skill\my-note.md")) { throw "재설치가 멤버 파일을 지움" }
+          if (-not (Test-Path "$skill\node_modules\x")) { throw "재설치가 node_modules를 지움" }
+          "OK: kept"
+      - name: unknown tool must fail
+        shell: ${{ matrix.shell }}
+        run: |
+          $env:WRITE_POST_REPO_URL = "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
+          $env:WP_TOOLS = "claude,banana"; $env:WP_SCOPE = "global"
+          $script = (iwr -useb "$env:WRITE_POST_REPO_URL/install_win.ps1").Content
+          $out = & { try { Invoke-Expression $script; "EXIT0" } catch { "THREW: $_" } }
+          $out
+          if ($out -match "EXIT0" -and -not ($out -match "못 알아들었어요")) { throw "banana를 거르지 못함" }
+          "OK: rejected"
+      - name: korean output readable
+        shell: ${{ matrix.shell }}
+        run: |
+          $env:WRITE_POST_REPO_URL = "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
+          $env:WP_TOOLS = "claude"; $env:WP_SCOPE = "global"
+          $log = (iwr -useb "$env:WRITE_POST_REPO_URL/install_win.ps1" | iex) *>&1 | Out-String
+          $log
+          if ($log -notmatch "설치 완료") { throw "한글 출력이 깨졌거나 완료 메시지 없음" }
+          "OK: korean"
+
+  mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: install (project, claude) and checks
+        run: |
+          export WRITE_POST_REPO_URL="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
+          mkdir -p /tmp/proj && cd /tmp/proj
+          bash "$GITHUB_WORKSPACE/install_mac.sh" " Claude " Project </dev/null
+          test -f .claude/skills/write-post/SKILL.md
+          [ "$(find .claude/skills/write-post -type f | wc -l)" -eq 20 ]
+          echo keep > .claude/skills/write-post/my-note.md
+          bash "$GITHUB_WORKSPACE/install_mac.sh" claude project </dev/null
+          test -f .claude/skills/write-post/my-note.md
+          if bash "$GITHUB_WORKSPACE/install_mac.sh" claude,banana project </dev/null; then echo "banana를 거르지 못함"; exit 1; fi
+          node .claude/skills/write-post/scripts/find-tags.mjs "24기" | head -c 200
+          echo; echo OK
