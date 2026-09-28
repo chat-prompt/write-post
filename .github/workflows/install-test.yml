@@ -9,14 +9,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  windows:
+  windows-powershell-5:
     runs-on: windows-latest
-    strategy:
-      matrix:
-        shell: [powershell, pwsh]   # powershell = Windows PowerShell 5.1, pwsh = PowerShell 7
     steps:
       - name: install (global, claude+codex)
-        shell: ${{ matrix.shell }}
+        shell: powershell
         run: |
           $env:WRITE_POST_REPO_URL = "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
           $env:WP_TOOLS = " Claude , codex "
@@ -29,7 +26,7 @@ jobs:
           if (-not (Test-Path "$env:USERPROFILE\.codex\skills\write-post\SKILL.md")) { throw "codex 설치 안 됨" }
           "OK: $n files"
       - name: reinstall keeps other files
-        shell: ${{ matrix.shell }}
+        shell: powershell
         run: |
           $env:WRITE_POST_REPO_URL = "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
           $skill = "$env:USERPROFILE\.claude\skills\write-post"
@@ -41,7 +38,7 @@ jobs:
           if (-not (Test-Path "$skill\node_modules\x")) { throw "재설치가 node_modules를 지움" }
           "OK: kept"
       - name: unknown tool must fail
-        shell: ${{ matrix.shell }}
+        shell: powershell
         run: |
           $env:WRITE_POST_REPO_URL = "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
           $env:WP_TOOLS = "claude,banana"; $env:WP_SCOPE = "global"
@@ -51,7 +48,55 @@ jobs:
           if ($out -match "EXIT0" -and -not ($out -match "못 알아들었어요")) { throw "banana를 거르지 못함" }
           "OK: rejected"
       - name: korean output readable
-        shell: ${{ matrix.shell }}
+        shell: powershell
+        run: |
+          $env:WRITE_POST_REPO_URL = "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
+          $env:WP_TOOLS = "claude"; $env:WP_SCOPE = "global"
+          $log = (iwr -useb "$env:WRITE_POST_REPO_URL/install_win.ps1" | iex) *>&1 | Out-String
+          $log
+          if ($log -notmatch "설치 완료") { throw "한글 출력이 깨졌거나 완료 메시지 없음" }
+          "OK: korean"
+
+  windows-pwsh-7:
+    runs-on: windows-latest
+    steps:
+      - name: install (global, claude+codex)
+        shell: pwsh
+        run: |
+          $env:WRITE_POST_REPO_URL = "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
+          $env:WP_TOOLS = " Claude , codex "
+          $env:WP_SCOPE = "GLOBAL"
+          iwr -useb "$env:WRITE_POST_REPO_URL/install_win.ps1" | iex
+          $skill = "$env:USERPROFILE\.claude\skills\write-post"
+          if (-not (Test-Path "$skill\SKILL.md")) { throw "SKILL.md 없음" }
+          $n = (Get-ChildItem -Recurse -File $skill).Count
+          if ($n -ne 20) { throw "파일 수가 20이 아님: $n" }
+          if (-not (Test-Path "$env:USERPROFILE\.codex\skills\write-post\SKILL.md")) { throw "codex 설치 안 됨" }
+          "OK: $n files"
+      - name: reinstall keeps other files
+        shell: pwsh
+        run: |
+          $env:WRITE_POST_REPO_URL = "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
+          $skill = "$env:USERPROFILE\.claude\skills\write-post"
+          New-Item -ItemType Directory -Force "$skill\node_modules\x" | Out-Null
+          "keep" | Set-Content "$skill\my-note.md"
+          $env:WP_TOOLS = "claude"; $env:WP_SCOPE = "global"
+          iwr -useb "$env:WRITE_POST_REPO_URL/install_win.ps1" | iex
+          if (-not (Test-Path "$skill\my-note.md")) { throw "재설치가 멤버 파일을 지움" }
+          if (-not (Test-Path "$skill\node_modules\x")) { throw "재설치가 node_modules를 지움" }
+          "OK: kept"
+      - name: unknown tool must fail
+        shell: pwsh
+        run: |
+          $env:WRITE_POST_REPO_URL = "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
+          $env:WP_TOOLS = "claude,banana"; $env:WP_SCOPE = "global"
+          $script = (iwr -useb "$env:WRITE_POST_REPO_URL/install_win.ps1").Content
+          $out = & { try { Invoke-Expression $script; "EXIT0" } catch { "THREW: $_" } }
+          $out
+          if ($out -match "EXIT0" -and -not ($out -match "못 알아들었어요")) { throw "banana를 거르지 못함" }
+          "OK: rejected"
+      - name: korean output readable
+        shell: pwsh
         run: |
           $env:WRITE_POST_REPO_URL = "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
           $env:WP_TOOLS = "claude"; $env:WP_SCOPE = "global"
