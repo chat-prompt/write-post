@@ -21,9 +21,25 @@ def parse():
 def boxes(args):
     out = []
     for b in args.blur:
-        x, y, w, h = [int(v) for v in b.split(",")]
+        parts = b.split(",")
+        if len(parts) != 4:
+            print(f"--blur 값은 x,y,w,h 네 숫자여야 해요: '{b}'", file=sys.stderr); sys.exit(3)
+        x, y, w, h = [int(v) for v in parts]
         out.append((x, y, w, h))
     return out
+
+def image_size(src):
+    exe = shutil.which("magick") or shutil.which("identify")
+    try:
+        if exe and exe.endswith("magick"):
+            out = subprocess.run([exe, "identify", "-format", "%w %h", src], capture_output=True, text=True, check=True).stdout
+        elif exe:
+            out = subprocess.run([exe, "-format", "%w %h", src], capture_output=True, text=True, check=True).stdout
+        else:
+            return None
+        w, h = out.split()[:2]; return int(w), int(h)
+    except Exception:
+        return None
 
 def with_pillow(a):
     from PIL import Image, ImageFilter
@@ -45,13 +61,20 @@ def with_pillow(a):
 def with_magick(a):
     exe = shutil.which("magick") or shutil.which("convert")
     if not exe: raise RuntimeError("no magick")
+    size = image_size(a.src)
+    if size and a.crop_top >= size[1]:
+        print(f"--crop-top {a.crop_top}이 이미지 높이 {size[1]}보다 커요.", file=sys.stderr); sys.exit(3)
     cmd = [exe, a.src]
     if a.crop_top:
         cmd += ["-gravity", "north", "-chop", f"0x{a.crop_top}"]
     cmd += ["-gravity", "northwest"]  # 합성 좌표는 왼쪽 위 기준. north가 남아 있으면 엉뚱한 자리에 붙는다.
     # -region은 -scale에 안 먹어서 화면 전체가 흐려진다. 영역을 잘라 픽셀화·블러한 뒤 같은 자리에 합성한다.
     for (x, y, w, h) in boxes(a):
-        y2 = max(0, y - a.crop_top)
+        y2 = y - a.crop_top
+        if y2 + h <= 0: continue  # 잘라낸 위쪽 영역은 건너뛴다(Pillow 경로와 같게)
+        if y2 < 0: h += y2; y2 = 0
+        if size and (x >= size[0] or y2 >= size[1] - a.crop_top):
+            print(f"--blur {x},{y},{w},{h} 영역이 이미지 밖이에요(크기 {size[0]}x{size[1]}).", file=sys.stderr); sys.exit(3)
         cmd += ["(", "+clone", "-crop", f"{w}x{h}+{x}+{y2}", "+repage", "-scale", "8%", "-resize", f"{w}x{h}!", "-blur", f"0x{a.radius}", ")",
                 "-geometry", f"+{x}+{y2}", "-composite"]
     cmd += [a.dst]
@@ -60,14 +83,20 @@ def with_magick(a):
 
 def main():
     a = parse()
+    import os
+    if not os.path.exists(a.src):
+        print(f"원본 파일이 없어요: {a.src}", file=sys.stderr); sys.exit(3)
     try:
         used = with_pillow(a)
     except ImportError:
-        try:
-            used = with_magick(a)
-        except Exception:
+        exe = shutil.which("magick") or shutil.which("convert")
+        if not exe:
             print("Pillow도 ImageMagick도 없습니다. 둘 중 하나를 설치하세요:\n  pip3 install pillow\n  brew install imagemagick", file=sys.stderr)
             sys.exit(2)
+        try:
+            used = with_magick(a)
+        except subprocess.CalledProcessError as e:
+            print(f"가리기 실패(ImageMagick 오류). 좌표와 파일을 확인하세요: {e}", file=sys.stderr); sys.exit(3)
     print(f"saved {a.dst} ({used}, blur {len(boxes(a))} regions, crop-top {a.crop_top})")
 
 if __name__ == "__main__":

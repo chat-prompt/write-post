@@ -10,7 +10,9 @@ async function gql(query, variables, token) {
   const r = await fetch(API, { method: 'POST', headers: { 'content-type': 'application/json', ...(token ? { authorization: 'Bearer ' + token } : {}) }, body: JSON.stringify({ query, variables }) })
   const j = await r.json(); if (j.errors) throw new Error(JSON.stringify(j.errors).slice(0, 300)); return j.data
 }
-const t = await gql(`query{ tokens(networkDomain:"${NETWORK}"){ accessToken } }`)
+let t
+try { t = await gql(`query{ tokens(networkDomain:"${NETWORK}"){ accessToken } }`) }
+catch (e) { console.error(`게시판에 연결하지 못했어요(인터넷 또는 api.bettermode.com 문제): ${e.cause?.code || e.message}. 태그는 발행 화면의 입력창에서 직접 검색해 주세요.`); process.exit(3) }
 const token = t.tokens.accessToken
 for (const q of words) {
   const d = await gql(`query($q:String!){ tags(limit:30, query:$q){ nodes { title slug } } }`, { q }, token)

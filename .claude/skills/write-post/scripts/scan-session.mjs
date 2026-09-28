@@ -13,19 +13,25 @@ import { createInterface } from 'node:readline'
 
 const args = process.argv.slice(2)
 const get = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d }
-const cwd = resolve(get('--cwd', process.cwd()))
+import { realpathSync } from 'node:fs'
+const cwdArg = resolve(get('--cwd', process.cwd()))
+let cwd = cwdArg; try { cwd = realpathSync(cwdArg) } catch {}  // /tmp ↔ /private/tmp 같은 심볼릭 링크
 const paste = get('--paste')
 const outMd = get('--out', 'DEVLOG.md')
 const outJson = get('--json', 'materials.json')
 const days = Number(get('--days', 30))
+const windowDays = Number(get('--window', 6))  // 기록이 5일 넘게 이어지면 마지막 6일만 "이번 작업"으로 본다(주차 과제는 7일 간격). 전부 쓰려면 --window 0
 
 // ---------- 1. 읽기 ----------
 // turn: { t: Date|null, who: 'user'|'ai', text, tools:[{name, path, cmd, url, q}], errors:[str], model, out_tokens }
 // 현재 폴더 이름이나 경로가 든 턴인가. 부모 폴더에서 띄운 세션에서 이 폴더 작업만 골라낼 때 쓴다.
 const CWD_BASE = basename(cwd)
+// 폴더 이름은 경로 꼴(/이름, \이름, 이름/)로 나올 때만 언급으로 친다. "React app 하나"의 app 같은 보통 단어는 아니다.
+const BASE_RE = new RegExp('(^|[\\\\/"\'\\s])' + CWD_BASE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '([\\\\/"\'\\s:.,]|$)')
+const pathMention = s => !!s && (s.includes(cwd) || s.includes(cwdArg) || BASE_RE.test(s) && /[\\/]/.test(s))
 const mentionsCwd = x => {
-  if (x.text && (x.text.includes(cwd) || x.text.includes(CWD_BASE))) return true
-  for (const tl of x.tools || []) if ((tl.path && tl.path.startsWith(cwd)) || (tl.cmd && (tl.cmd.includes(cwd) || tl.cmd.includes(CWD_BASE)))) return true
+  if (pathMention(x.text)) return true
+  for (const tl of x.tools || []) if ((tl.path && (tl.path.startsWith(cwd) || tl.path.startsWith(cwdArg))) || pathMention(tl.cmd)) return true
   return false
 }
 // 부모 폴더 세션은 요청 단위로 고른다: 사용자 요청 하나 + 그 뒤 AI가 한 일(다음 요청 전까지)을 한 묶음으로 보고,
@@ -66,14 +72,16 @@ function readClaudeCode() {
       }
       const exact = scwd === me
       if (!exact && !me.startsWith(scwd + SEP)) continue
-      if (!exact) { const head = readFileSync(full, 'utf8'); if (!head.includes(cwd) && !head.includes(CWD_BASE)) continue }  // 이 폴더 얘기가 없는 상위 세션은 통째로 제외
+      const head = readFileSync(full, 'utf8')
+      if (/처음이라 세 가지만 여쭐게요|기록에서 이렇게 찾았어요|스터디 태그를 번호로 골라 주세요/.test(head)) continue  // 이 스킬 자신이 돌던 세션은 글감이 아니다
+      if (!exact && !head.includes(cwd) && !head.includes(cwdArg) && !head.includes(CWD_BASE)) continue  // 이 폴더 얘기가 없는 상위 세션은 통째로 제외
       files.push({ f: full, exact })
     }
   }
   // 이 폴더에서 띄운 세션이 하나라도 있으면 상위 폴더 세션은 보지 않는다(다른 작업이 섞인다).
   const hasExact = files.some(x => x.exact)
   const useFiles = hasExact ? files.filter(x => x.exact) : files
-  const turns = []
+  const turns = []; const used = []
   for (const { f, exact } of useFiles) {
     const fileTurns = []
     const queued = new Map()  // 큐(enqueue)에 들어간 문장 → 아직 짝(user 레코드)을 못 만난 개수
@@ -115,25 +123,31 @@ function readClaudeCode() {
         fileTurns.push({ t, who: 'ai', text: text.trim(), tools, errors: [], model: m.model || null, out_tokens: (m.usage || {}).output_tokens || 0, src: f })
       }
     }
-    turns.push(...(exact ? fileTurns : keepRelevantBlocks(fileTurns)))
+    const kept = exact ? fileTurns : keepRelevantBlocks(fileTurns)
+    if (kept.length) { turns.push(...kept); used.push(f) }
   }
   turns.sort((a, b) => (a.t?.getTime() || 0) - (b.t?.getTime() || 0))
-  return { turns, files: useFiles.map(x => x.f) }
+  return { turns, files: used, hasExact }
 }
 
 function readPaste(file) {
   const raw = readFileSync(file, 'utf8').replace(/\r\n/g, '\n')
   const marks = /^\s*(?:\[?(나|사용자|User|You|You said|나의 말|질문)\]?\s*[:：]?|\[?(AI|Assistant|ChatGPT|Claude|Gemini|제미나이|클로드|챗GPT|ChatGPT said|답변)\]?\s*[:：]?)\s*$/im
-  const turns = []; let cur = null
+  const turns = []; let cur = null; let inFence = false
+  // 화자 표시로 인정하는 꼴: "[나]", "나:", "나의 말:", "User:", "You said:", 또는 그 단어 하나만 있는 줄. "나중에…"처럼 본문 첫 단어는 잘라 내지 않는다.
+  // 챗GPT 웹 복사: "나의 말:" / "ChatGPT의 말:", 영문: "You said:" / "ChatGPT said:", 제미나이: "You said" / "Gemini said", 클로드: 직접 붙인 [나]/[AI]
+  // 긴 이름을 먼저 둔다("You said"가 "You"보다 앞). 코드블록(```) 안은 화자로 보지 않는다.
+  const USER_NAMES = ['You said', '나의 말', '사용자', 'User', 'You', '나']
+  const AI_NAMES = ['ChatGPT의 말', 'ChatGPT said', 'Claude의 말', 'Claude said', 'Gemini의 말', 'Gemini said', 'Copilot said', '제미나이의 말', '클로드의 말', '챗GPT의 말', 'Assistant', 'ChatGPT', 'Copilot', 'Claude', 'Gemini', '제미나이', '클로드', '챗GPT', 'AI']
+  const NAMES = [...USER_NAMES, ...AI_NAMES].sort((a, b) => b.length - a.length).join('|')
+  const RE = new RegExp(`^\\s*(?:\\[(${NAMES})\\]|(${NAMES})\\s*[:：]|(${NAMES}))\\s*(.*)$`, 'i')
   for (const line of raw.split('\n')) {
-    // 화자 표시로 인정하는 꼴: "[나]", "나:", "나의 말:", "User:", "You said:", 또는 그 단어 하나만 있는 줄. "나중에…", "질문이…"처럼 본문 첫 단어는 잘라 내지 않는다.
-    // 챗GPT 웹 복사: "나의 말:" / "ChatGPT의 말:", 영문: "You said:" / "ChatGPT said:", 제미나이: "You said" / "Gemini said", 클로드: 직접 붙인 [나]/[AI]
-    const NAMES = '나|사용자|User|You|You said|나의 말|질문|AI|Assistant|ChatGPT|ChatGPT의 말|ChatGPT said|Claude|Claude의 말|Claude said|클로드|클로드의 말|Gemini|Gemini의 말|Gemini said|제미나이|제미나이의 말|챗GPT|챗GPT의 말|Copilot|Copilot said|답변'
-    const m = line.match(new RegExp(`^\\s*(?:\\[(${NAMES})\\]|(${NAMES})\\s*[:：]|(${NAMES}))\\s*(.*)$`, 'i'))
+    if (/^\s*```/.test(line)) { inFence = !inFence; if (cur) cur.text += '\n' + line; continue }
+    const m = inFence ? null : line.match(RE)
     const name = m && (m[1] || m[2] || m[3])
     const ok = m && (m[1] || m[2] || (m[3] && !m[4]))  // 대괄호, 콜론, 아니면 단독 행
     if (ok) {
-      const who = /^(나|사용자|User|You|You said|나의 말|질문)$/i.test(name) ? 'user' : 'ai'
+      const who = USER_NAMES.some(n => n.toLowerCase() === name.toLowerCase()) ? 'user' : 'ai'
       cur = { t: null, who, text: m[4] || '', tools: [], errors: [], src: file }; turns.push(cur)
     } else if (cur) cur.text += '\n' + line
   }
@@ -149,7 +163,7 @@ function firstLine(f, headBytes) {
   const s = buf.toString('utf8', 0, n)
   return headBytes ? s : s.split('\n')[0]
 }
-async function readCodex() {
+async function readCodex(otherHasExact) {
   const root = join(homedir(), '.codex', 'sessions')
   if (!existsSync(root)) return { turns: [], files: [], skipped: [] }
   const since = Date.now() - days * 864e5
@@ -168,9 +182,9 @@ async function readCodex() {
     if (statSync(f).size > 400 * 1024 * 1024) { skipped.push(f); continue }
     mine.push({ f, exact })
   }
-  const hasExact = mine.some(x => x.exact)
+  const hasExact = mine.some(x => x.exact) || otherHasExact
   const useMine = hasExact ? mine.filter(x => x.exact) : mine
-  const turns = []
+  const turns = []; const used = []
   for (const { f, exact } of useMine) {
     const seen = new Set(); let model = null, outTok = 0; const fileTurns = []
     const rl = createInterface({ input: createReadStream(f, { encoding: 'utf8' }), crlfDelay: Infinity })
@@ -208,16 +222,19 @@ async function readCodex() {
     }
     // 이 파일의 AI 턴에 모델·토큰을 채운다
     const ais = fileTurns.filter(x => x.who === 'ai'); if (ais.length) { ais[ais.length - 1].out_tokens = outTok; for (const a of ais) a.model = a.model || model }
-    turns.push(...(exact ? fileTurns : keepRelevantBlocks(fileTurns)))
+    const kept = exact ? fileTurns : keepRelevantBlocks(fileTurns)
+    if (kept.length) { turns.push(...kept); used.push(f) }
   }
   turns.sort((a, b) => (a.t?.getTime() || 0) - (b.t?.getTime() || 0))
-  return { turns, files: useMine.map(x => x.f), skipped }
+  return { turns, files: used, skipped, hasExact: mine.some(x => x.exact) }
 }
 
 let turns, files, sources = []
 if (paste) ({ turns, files } = readPaste(paste))
 else {
-  const cc = readClaudeCode(); const cx = await readCodex()
+  const cc = readClaudeCode(); const cx = await readCodex(cc.hasExact)
+  // 코덱스에 이 폴더 세션이 있고 클로드 코드는 상위 폴더 세션뿐이면, 클로드 코드 쪽 상위 세션도 버린다
+  if (cx.hasExact && !cc.hasExact) { cc.turns = []; cc.files = [] }
   turns = [...cc.turns, ...cx.turns].sort((a, b) => (a.t?.getTime() || 0) - (b.t?.getTime() || 0))
   files = [...cc.files, ...cx.files]
   if (cc.files.length) sources.push('claude-code'); if (cx.files.length) sources.push('codex')
@@ -227,24 +244,48 @@ if (!turns.length) {
   console.error(paste ? '붙여 넣은 대화에서 턴을 찾지 못했어요.' : `이 폴더의 Claude Code·Codex 세션을 찾지 못했어요: ${cwd}`)
   process.exit(2)
 }
+// 지난 주 과제와 이번 주 과제가 같은 폴더에 있으면 마지막 windowDays일만 남긴다
+let windowed = 0
+{
+  const ts = turns.map(x => x.t).filter(Boolean)
+  if (windowDays > 0 && ts.length) {
+    const last = Math.max(...ts.map(t => t.getTime())), first = Math.min(...ts.map(t => t.getTime()))
+    if (last - first > 5 * 864e5) {
+      const before = turns.length
+      const cutAt = last - windowDays * 864e5
+      for (let k = turns.length - 1; k >= 0; k--) if (turns[k].t && turns[k].t.getTime() < cutAt) turns.splice(k, 1)
+      windowed = before - turns.length
+      if (windowed) console.error(`기록이 ${Math.round((last - first) / 864e5)}일에 걸쳐 있어 마지막 ${windowDays}일만 씁니다. 지난 주 작업까지 넣으려면 --window 0`)
+    }
+  }
+}
+if (!turns.some(x => x.who === 'user' && x.text)) {
+  console.error('기록은 있는데 사용자가 보낸 말이 없어요(도구 호출만 있음). 대화를 붙여 넣거나 세 줄로 적어 주세요.')
+  process.exit(2)
+}
 // 상한: 요청이 80개를 넘으면 최근 것부터 80개가 들어가는 블록까지만 남긴다(글 한 편 재료로 충분).
 const MAX_REQ = Number(get('--max-requests', 80))
+let truncatedFrom = 0
 {
   const uidx = turns.map((x, i) => (x.who === 'user' && x.text ? i : -1)).filter(i => i >= 0)
   if (uidx.length > MAX_REQ) {
     const cut = uidx[uidx.length - MAX_REQ]
+    truncatedFrom = uidx.length - MAX_REQ
     console.error(`요청이 ${uidx.length}개라 최근 ${MAX_REQ}개만 씁니다. 더 앞 작업이 필요하면 --max-requests 숫자를 키우세요.`)
     turns.splice(0, cut)
   }
 }
 
+const localDate = t => `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`
 // ---------- 2. 재료 뽑기 ----------
 const isSlashCmd = t => /^\/[A-Za-z][\w:-]*(\s|$)/.test(t) && !/^\/[^\s]*\//.test(t)  // /compact 는 명령, /tmp/a.txt 는 경로
 const users = turns.filter(x => x.who === 'user' && x.text && !isSlashCmd(x.text))
 const ais = turns.filter(x => x.who === 'ai')
-const firstReq = users.find(x => x.text.length >= 4) || users[0] || null
+const stripImg = t => t.replace(/\[Image[^\]]*\]/g, '').trim()
+const firstReq = users.find(x => stripImg(x.text).length >= 4) || users[0] || null
 const STUCK = /(안\s?돼|안\s?됨|안\s?나와|안\s?되네|안\s?되잖|안\s?열|안\s?보여|다시\s?(해|만들|찾|봐|돌)|아니야|아니 |아닌데|왜 안|왜 이래|뭐야|에러|오류|틀렸|실패|막혔|깨져|이상해|이상한데)/
 turns.forEach((x, i) => { x.i = i })
+const PRI = { user_pushback: 0, ai_reports_block: 1, ai_corrects: 2, tool_error: 3 }
 const stuck = []
 for (let i = 0; i < turns.length; i++) {
   const x = turns[i]
@@ -255,24 +296,27 @@ for (let i = 0; i < turns.length; i++) {
   }
   if (x.who === 'user' && x.text && x.text.length <= 600 && x !== firstReq && STUCK.test(x.text)) {  // 긴 붙여넣기와 첫 요청은 되돌린 말이 아니다
     const prevAi = [...turns.slice(0, i)].reverse().find(y => y.who === 'ai' && y.text)
-    stuck.push({ kind: 'user_pushback', t: x.t, i, text: x.text, before_ai: prevAi ? prevAi.text.slice(0, 800) : null })
+    // 되돌린 말 자체가 아니라 그 직전 AI 답이 "막힌 순간"이고, 되돌린 말은 "그 뒤 멤버가 보낸 말"이다
+    stuck.push({ kind: 'user_pushback', t: x.t, i: prevAi ? prevAi.i : i, text: prevAi ? prevAi.text.slice(0, 800) : x.text, pushback: x.text })
   }
   if (x.who === 'ai' && /(못 했|실패했|되지 않|오류가|에러가|막혔|권한이 없|찾지 못)/.test(x.text)) stuck.push({ kind: 'ai_reports_block', t: x.t, i, text: x.text.slice(0, 800) })
   else if (x.who === 'ai' && /(이 아니라|가 아니라|은 아니고|는 아니고|잘못|않습니다\. )/.test(x.text.slice(0, 160))) stuck.push({ kind: 'ai_corrects', t: x.t, i, text: x.text.slice(0, 800) })
 }
 // 방향 바꾼 한 마디: 막힌 지점 다음에 온 사용자 메시지
-const PRI = { user_pushback: 0, ai_reports_block: 1, ai_corrects: 2, tool_error: 3 }
-stuck.sort((a, b) => PRI[a.kind] - PRI[b.kind] || (a.t?.getTime() || 0) - (b.t?.getTime() || 0))
 for (const s of stuck) {
-  const after = users.find(u => u.i > s.i && u.text !== s.text)  // 시각이 없는 붙여 넣기에서도 순서로 찾는다
-  s.next_user = after ? after.text : null
+  const after = s.pushback ? null : users.find(u => u.i > s.i && u.text !== s.text)  // 시각이 없는 붙여 넣기에서도 순서로 찾는다
+  s.next_user = s.pushback || (after ? after.text : null)
+  delete s.pushback
 }
-const written = new Set(), edited = new Set(), cmds = [], urls = new Set(), asks = []
+// 같은 반응(그 뒤 멤버 말)으로 이어지는 후보는 한 사건이다. 우선순위가 높은 하나만 남긴다.
+{ const seenR = new Set(); for (let k = stuck.length - 1; k >= 0; k--) { const key = stuck[k].next_user || ('#' + k); if (seenR.has(key)) stuck.splice(k, 1); else seenR.add(key) } }
+stuck.sort((a, b) => PRI[a.kind] - PRI[b.kind] || (a.t?.getTime() || 0) - (b.t?.getTime() || 0))
+const written = new Set(), edited = new Set(), cmds = [], urls = new Set(), opened = new Set(), asks = []
 for (const a of ais) for (const tl of a.tools || []) {
   if (tl.name === 'Write' && tl.path) written.add(tl.path)
   if ((tl.name === 'Edit' || tl.name === 'MultiEdit' || tl.name === 'NotebookEdit') && tl.path) edited.add(tl.path)
   if (tl.cmd) cmds.push(tl.cmd)
-  if (tl.url) urls.add(tl.url)
+  if (tl.url) opened.add(tl.url)
   if (tl.q) asks.push(...tl.q)
 }
 for (const a of ais) for (const u of (a.text.match(/https?:\/\/[^\s)\]>"']+/g) || [])) if (!/localhost|127\.0\.0\.1/.test(u)) urls.add(u)
@@ -306,7 +350,7 @@ const remaining = [
 ]
 const materials = {
   source: paste ? 'paste' : sources.join('+'), files: files.map(f => basename(f)), cwd,
-  date: firstT ? firstT.toISOString().slice(0, 10) : null,
+  date: firstT ? localDate(firstT) : null,
   first_request: firstReq ? firstReq.text : null,
   user_messages: users.map(u => u.text),
   stuck_moments: stuck.slice(0, 8),
@@ -316,14 +360,17 @@ const materials = {
   results: { files: [...written].filter(p => !/\/\.claude\//.test(p)).map(p => basename(p)).slice(0, 20), mentioned: [...mentioned].slice(0, 12), urls: [...urls].slice(0, 20) },
   time_blocks: blocks.map(b => ({ start: b.start, end: b.end, min: b.min })),
   remaining: remaining.slice(0, 8),
-  resources_opened: [...urls].filter(u => !/gpters\.org/.test(u)).slice(0, 10),
+  resources_opened: [...opened].filter(u => !/gpters\.org|localhost|127\.0\.0\.1/.test(u)).slice(0, 10),
+  truncated_requests: truncatedFrom || 0,
+  windowed_out_turns: windowed || 0,
   ask_questions: asks.slice(0, 10),
 }
 
 // ---------- 3. DEVLOG ----------
-const fmt = t => t ? t.toISOString().slice(0, 16).replace('T', ' ') + 'Z' : '시각 없음'
+// 날짜·시각은 이 컴퓨터의 시간대(멤버가 사는 곳). UTC로 적으면 한국 새벽 작업이 전날이 된다.
+const fmt = t => t ? `${localDate(t)} ${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}` : '시각 없음'
 const L = []
-L.push(`# ${basename(cwd)} - 개발 로그`, '', `생성: ${new Date().toISOString().slice(0, 10)} · 출처: ${materials.source} · 기록 ${files.length}개 · 사용자 메시지 ${users.length}개 · AI 응답 ${ais.length}개`, '')
+L.push(`# ${basename(cwd)} - 개발 로그`, '', `생성: ${localDate(new Date())} · 출처: ${materials.source} · 기록 ${files.length}개 · 사용자 메시지 ${users.length}개${truncatedFrom ? ` (앞 ${truncatedFrom}개는 잘라 냄, --max-requests로 조절)` : ''} · AI 응답 ${ais.length}개 · 최근 ${days}일`, '')
 L.push(`## ${materials.date || '날짜 미상 [멤버에게 확인]'}`, '')
 let n = 0
 for (let i = 0; i < turns.length; i++) {
@@ -363,4 +410,4 @@ L.push(`- 세션에서 연 자료: ${materials.resources_opened.join(' ') || '�
 writeFileSync(outMd, L.join('\n'))
 writeFileSync(outJson, JSON.stringify(materials, null, 2))
 console.log(`✓ ${outMd} (요청 ${users.length}개, 막힌 순간 ${stuck.length}개, ${workMin != null ? '작업 ' + workMin + '분' : '시각 없음'}) · ${outJson}`)
-if (paste) console.log('붙여 넣은 대화라 날짜·걸린 시간·모델은 비어 있어요. 3-3에서 묻는다.')
+if (paste) console.log('붙여 넣은 대화라 날짜·걸린 시간·모델은 비어 있어요. ②에서 묻는다.')

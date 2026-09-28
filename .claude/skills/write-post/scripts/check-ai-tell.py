@@ -12,7 +12,8 @@ def main():
     if len(sys.argv) < 2:
         print("사용법: python3 check-ai-tell.py 초안.md"); sys.exit(2)
     raw = open(sys.argv[1], encoding="utf-8").read()
-    b = raw.split("---", 2)[2] if raw.startswith("---") else raw
+    parts = raw.split("---", 2)
+    b = parts[2] if raw.startswith("---") and len(parts) == 3 else raw
     b = re.sub(r"```.*?```", "", b, flags=re.S)
     b = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", b)
     b = re.sub(r"^>.*$", "", b, flags=re.M)

@@ -34,6 +34,14 @@ if [ -n "$ARG_SCOPE" ] && [ "$ARG_SCOPE" != "global" ] && [ "$ARG_SCOPE" != "pro
     echo "설치 위치는 global 또는 project 여야 해요: '$ARG_SCOPE'" >&2; exit 1
 fi
 
+# 메뉴는 터미널에서만 물을 수 있다. 에이전트나 파이프에서 인자 없이 돌리면 바로 안내하고 끝낸다.
+if [ -z "$ARG_TOOLS" ] || [ -z "$ARG_SCOPE" ]; then
+    if ! { : </dev/tty; } 2>/dev/null; then
+        echo "터미널이 아니라 메뉴를 물을 수 없어요. 도구와 위치를 인자로 주세요. 예: install_mac.sh claude global  (도구: claude, codex, gemini, opencode, antigravity, all)" >&2
+        exit 1
+    fi
+fi
+
 # Step 1: Select scope (global or project)
 if [ -n "$ARG_SCOPE" ]; then
     scope_choice=$([ "$ARG_SCOPE" = "project" ] && echo 2 || echo 1)
@@ -73,6 +81,7 @@ fi
 
 # Parse tool selections
 declare -a TOOLS_TO_INSTALL
+case ",$tool_choice," in *,6,*) tool_choice=6 ;; esac   # all이 섞여 있으면 전체
 if [ "$tool_choice" = "6" ]; then
     TOOLS_TO_INSTALL=("claude" "opencode" "codex" "gemini" "antigravity")
 else
@@ -140,7 +149,9 @@ install_tool() {
     esac
     
     # 폴더를 통째로 지우지 않는다(node_modules, 멤버가 둔 파일 보존). 우리가 관리하는 파일만 새로 받는다.
-    mkdir -p "$target_dir/references" "$target_dir/scripts"
+    if ! mkdir -p "$target_dir/references" "$target_dir/scripts"; then
+        echo "폴더를 만들 수 없어요(쓰기 권한 확인): $target_dir" >&2; exit 1
+    fi
     for f in "${SKILL_FILES[@]}"; do rm -f "$target_dir/$f"; done
     
     for f in "${SKILL_FILES[@]}"; do
