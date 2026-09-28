@@ -313,8 +313,9 @@ for (const s of stuck) {
 stuck.sort((a, b) => PRI[a.kind] - PRI[b.kind] || (a.t?.getTime() || 0) - (b.t?.getTime() || 0))
 const written = new Set(), edited = new Set(), cmds = [], urls = new Set(), opened = new Set(), asks = []
 for (const a of ais) for (const tl of a.tools || []) {
-  if (tl.name === 'Write' && tl.path) written.add(tl.path)
-  if ((tl.name === 'Edit' || tl.name === 'MultiEdit' || tl.name === 'NotebookEdit') && tl.path) edited.add(tl.path)
+  const isMemory = p => /[\\/]\.claude[\\/]/.test(p || '')  // 클로드 코드 메모리 파일은 작업 결과물이 아니다
+  if (tl.name === 'Write' && tl.path && !isMemory(tl.path)) written.add(tl.path)
+  if ((tl.name === 'Edit' || tl.name === 'MultiEdit' || tl.name === 'NotebookEdit') && tl.path && !isMemory(tl.path)) edited.add(tl.path)
   if (tl.cmd) cmds.push(tl.cmd)
   if (tl.url) opened.add(tl.url)
   if (tl.q) asks.push(...tl.q)
@@ -378,7 +379,7 @@ for (let i = 0; i < turns.length; i++) {
   if (x.who !== 'user' || !x.text) continue
   n++
   L.push(`### ${n}. ${x.text.split('\n')[0].slice(0, 40)}${x.queued ? ' (작업 중에 이어 보낸 말)' : ''}`, '', `> ${fmt(x.t)}`, '', '```', x.text, '```', '')
-  if (x.answers && x.answers.length) L.push(`- 질문에 답함: ${x.answers[0].slice(0, 200)}`)
+  if (x.answers && x.answers.length) L.push(`- 질문에 답함: ${x.answers[0].slice(0, 600)}`)
   // 다음 사용자 메시지 전까지 AI가 한 일
   const acts = []
   for (let j = i + 1; j < turns.length && !(turns[j].who === 'user' && turns[j].text); j++) {
@@ -392,7 +393,7 @@ for (let i = 0; i < turns.length; i++) {
       else if (tl.name === 'AskUserQuestion') acts.push(`질문: ${(tl.q || []).join(' / ').slice(0, 160)}`)
       else if (tl.url) acts.push(`열어 봄: ${tl.url}`)
     }
-    if (a.text) acts.push(`AI: ${a.text.replace(/\s+/g, ' ').slice(0, 400)}`)
+    if (a.text) acts.push(`AI: ${a.text.replace(/\s+/g, ' ').slice(0, 600)}`)
   }
   const uniq = [...new Set(acts)].slice(0, 14)
   if (uniq.length) L.push(...uniq.map(s => `- ${s}`), '')
@@ -402,7 +403,7 @@ for (const b of blocks) L.push(`  - ${fmt(b.start)} ~ ${fmt(b.end).slice(11)} ($
 L.push('')
 L.push('## 재료 후보', '', `- 처음 요청: ${materials.first_request ? '"' + materials.first_request.split('\n')[0].slice(0, 120) + '"' : '없음'}`)
 for (const s of materials.stuck_moments) L.push(`- 막힌 순간(${s.kind}): ${s.text.replace(/\s+/g, ' ').slice(0, 160)}${s.next_user ? ' → 그 뒤 멤버: "' + s.next_user.replace(/\s+/g, ' ').slice(0, 100) + '"' : ''}`)
-L.push(`- 숫자: 파일 작성 ${written.size}개 · 수정 ${edited.size}개 · 명령 ${cmds.length}회 · 도구 에러 ${errorsN}회 · 커밋 ${commits}회 · 배포 명령 ${deploys}회`)
+L.push(`- 숫자: 파일 작성 ${written.size}개 · 수정 ${edited.size}개 (명령으로 만든 파일은 못 센다) · 명령 ${cmds.length}회 · 도구 에러 ${errorsN}회 · 커밋 ${commits}회 · 배포 명령 ${deploys}회`)
 L.push(`- 모델: ${models.join(', ') || '없음'} · 출력 토큰: ${outTokens || '없음'} · 비용: 로그에 없음`)
 L.push(`- 결과물: ${[...materials.results.files, ...materials.results.mentioned].join(', ') || '파일 없음'}${materials.results.urls.length ? ' · 주소: ' + materials.results.urls.slice(0, 5).join(' ') : ''}`)
 L.push(`- 아직 안 된 것: ${materials.remaining.map(r => r.replace(/\s+/g, ' ').slice(0, 100)).join(' / ') || '없음'}`)
