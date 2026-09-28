@@ -20,10 +20,10 @@ jobs:
           $env:WP_SCOPE = "GLOBAL"
           iwr -useb "$env:WRITE_POST_REPO_URL/install_win.ps1" | iex
           $skill = "$env:USERPROFILE\.claude\skills\write-post"
-          if (-not (Test-Path "$skill\SKILL.md")) { throw "SKILL.md 없음" }
+          if (-not (Test-Path "$skill\SKILL.md")) { throw "SKILL.md missing" }
           $n = (Get-ChildItem -Recurse -File $skill).Count
-          if ($n -ne 20) { throw "파일 수가 20이 아님: $n" }
-          if (-not (Test-Path "$env:USERPROFILE\.codex\skills\write-post\SKILL.md")) { throw "codex 설치 안 됨" }
+          if ($n -ne 20) { throw "file count is not 20: $n" }
+          if (-not (Test-Path "$env:USERPROFILE\.codex\skills\write-post\SKILL.md")) { throw "codex not installed" }
           "OK: $n files"
       - name: reinstall keeps other files
         shell: powershell
@@ -34,27 +34,27 @@ jobs:
           "keep" | Set-Content "$skill\my-note.md"
           $env:WP_TOOLS = "claude"; $env:WP_SCOPE = "global"
           iwr -useb "$env:WRITE_POST_REPO_URL/install_win.ps1" | iex
-          if (-not (Test-Path "$skill\my-note.md")) { throw "재설치가 멤버 파일을 지움" }
-          if (-not (Test-Path "$skill\node_modules\x")) { throw "재설치가 node_modules를 지움" }
+          if (-not (Test-Path "$skill\my-note.md")) { throw "reinstall removed member file" }
+          if (-not (Test-Path "$skill\node_modules\x")) { throw "reinstall removed node_modules" }
           "OK: kept"
-      - name: unknown tool must fail
+      - name: unknown tool must fail (throw, console stays open)
         shell: powershell
         run: |
           $env:WRITE_POST_REPO_URL = "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
           $env:WP_TOOLS = "claude,banana"; $env:WP_SCOPE = "global"
-          $script = (iwr -useb "$env:WRITE_POST_REPO_URL/install_win.ps1").Content
-          $out = & { try { Invoke-Expression $script; "EXIT0" } catch { "THREW: $_" } }
-          $out
-          if ($out -match "EXIT0" -and -not ($out -match "못 알아들었어요")) { throw "banana를 거르지 못함" }
-          "OK: rejected"
-      - name: korean output readable
+          $threw = $false
+          try { iwr -useb "$env:WRITE_POST_REPO_URL/install_win.ps1" | iex } catch { $threw = $true; "caught: $_" }
+          if (-not $threw) { throw "banana was not rejected" }
+          "OK: rejected without closing the shell"
+      - name: korean output not garbled
         shell: powershell
         run: |
           $env:WRITE_POST_REPO_URL = "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
           $env:WP_TOOLS = "claude"; $env:WP_SCOPE = "global"
           $log = (iwr -useb "$env:WRITE_POST_REPO_URL/install_win.ps1" | iex) *>&1 | Out-String
           $log
-          if ($log -notmatch "설치 완료") { throw "한글 출력이 깨졌거나 완료 메시지 없음" }
+          if ($log -match "[\u00c3\u00ec\u00eb\u00ea]") { throw "korean output looks garbled" }
+          if ($log -notmatch "write-post") { throw "no completion line" }
           "OK: korean"
 
   windows-pwsh-7:
@@ -68,10 +68,10 @@ jobs:
           $env:WP_SCOPE = "GLOBAL"
           iwr -useb "$env:WRITE_POST_REPO_URL/install_win.ps1" | iex
           $skill = "$env:USERPROFILE\.claude\skills\write-post"
-          if (-not (Test-Path "$skill\SKILL.md")) { throw "SKILL.md 없음" }
+          if (-not (Test-Path "$skill\SKILL.md")) { throw "SKILL.md missing" }
           $n = (Get-ChildItem -Recurse -File $skill).Count
-          if ($n -ne 20) { throw "파일 수가 20이 아님: $n" }
-          if (-not (Test-Path "$env:USERPROFILE\.codex\skills\write-post\SKILL.md")) { throw "codex 설치 안 됨" }
+          if ($n -ne 20) { throw "file count is not 20: $n" }
+          if (-not (Test-Path "$env:USERPROFILE\.codex\skills\write-post\SKILL.md")) { throw "codex not installed" }
           "OK: $n files"
       - name: reinstall keeps other files
         shell: pwsh
@@ -82,27 +82,27 @@ jobs:
           "keep" | Set-Content "$skill\my-note.md"
           $env:WP_TOOLS = "claude"; $env:WP_SCOPE = "global"
           iwr -useb "$env:WRITE_POST_REPO_URL/install_win.ps1" | iex
-          if (-not (Test-Path "$skill\my-note.md")) { throw "재설치가 멤버 파일을 지움" }
-          if (-not (Test-Path "$skill\node_modules\x")) { throw "재설치가 node_modules를 지움" }
+          if (-not (Test-Path "$skill\my-note.md")) { throw "reinstall removed member file" }
+          if (-not (Test-Path "$skill\node_modules\x")) { throw "reinstall removed node_modules" }
           "OK: kept"
-      - name: unknown tool must fail
+      - name: unknown tool must fail (throw, console stays open)
         shell: pwsh
         run: |
           $env:WRITE_POST_REPO_URL = "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
           $env:WP_TOOLS = "claude,banana"; $env:WP_SCOPE = "global"
-          $script = (iwr -useb "$env:WRITE_POST_REPO_URL/install_win.ps1").Content
-          $out = & { try { Invoke-Expression $script; "EXIT0" } catch { "THREW: $_" } }
-          $out
-          if ($out -match "EXIT0" -and -not ($out -match "못 알아들었어요")) { throw "banana를 거르지 못함" }
-          "OK: rejected"
-      - name: korean output readable
+          $threw = $false
+          try { iwr -useb "$env:WRITE_POST_REPO_URL/install_win.ps1" | iex } catch { $threw = $true; "caught: $_" }
+          if (-not $threw) { throw "banana was not rejected" }
+          "OK: rejected without closing the shell"
+      - name: korean output not garbled
         shell: pwsh
         run: |
           $env:WRITE_POST_REPO_URL = "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
           $env:WP_TOOLS = "claude"; $env:WP_SCOPE = "global"
           $log = (iwr -useb "$env:WRITE_POST_REPO_URL/install_win.ps1" | iex) *>&1 | Out-String
           $log
-          if ($log -notmatch "설치 완료") { throw "한글 출력이 깨졌거나 완료 메시지 없음" }
+          if ($log -match "[\u00c3\u00ec\u00eb\u00ea]") { throw "korean output looks garbled" }
+          if ($log -notmatch "write-post") { throw "no completion line" }
           "OK: korean"
 
   mac:

@@ -1,4 +1,4 @@
-# write-post installer for Windows PowerShell
+﻿# write-post installer for Windows PowerShell
 
 # UTF-8 encoding for Korean text display
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -33,7 +33,7 @@ $SkillFiles = @(
 if ($env:WP_TOOLS) {
     $toolChoice = $env:WP_TOOLS.ToLower().Replace(" ","").Replace("all","6").Replace("claude","1").Replace("opencode","2").Replace("codex","3").Replace("gemini","4").Replace("antigravity","5")
     foreach ($item in ($toolChoice -split ",")) {
-        if ($item -notmatch '^[1-6]$') { Write-Host "설치할 도구를 못 알아들었어요: '$item'. claude, codex, gemini, opencode, antigravity, all 중에서 적어 주세요." -ForegroundColor Red; exit 1 }
+        if ($item -notmatch '^[1-6]$') { throw "설치할 도구를 못 알아들었어요: '$item'. claude, codex, gemini, opencode, antigravity, all 중에서 적어 주세요." }
     }
 } else {
 [Console]::Write("어떤 도구에 설치할까요?`n")
@@ -144,8 +144,7 @@ function Install-Tool {
 }
 
 if ($tools.Count -eq 0) {
-    Write-Host "설치할 도구를 못 알아들었어요: '$toolChoice'. claude, codex, gemini, opencode, antigravity, all 중에서 적어 주세요." -ForegroundColor Red
-    exit 1
+    throw "설치할 도구를 못 알아들었어요: '$toolChoice'. claude, codex, gemini, opencode, antigravity, all 중에서 적어 주세요."
 }
 
 # Install selected tools
