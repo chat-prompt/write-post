@@ -1,4 +1,4 @@
-﻿# write-post installer for Windows PowerShell
+# write-post installer for Windows PowerShell
 
 # UTF-8 encoding for Korean text display
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
