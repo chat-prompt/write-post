@@ -31,7 +31,7 @@ $SkillFiles = @(
 
 # Tool selection menu
 if ($env:WP_TOOLS) {
-    $toolChoice = $env:WP_TOOLS.Replace("all","6").Replace("claude","1").Replace("opencode","2").Replace("codex","3").Replace("gemini","4").Replace("antigravity","5")
+    $toolChoice = $env:WP_TOOLS.ToLower().Replace(" ","").Replace("all","6").Replace("claude","1").Replace("opencode","2").Replace("codex","3").Replace("gemini","4").Replace("antigravity","5")
 } else {
 [Console]::Write("어떤 도구에 설치할까요?`n")
 [Console]::Write("1) Claude Code`n")
@@ -46,7 +46,7 @@ $toolChoice = [Console]::ReadLine()
 
 # Scope selection
 if ($env:WP_SCOPE) {
-    $scopeChoice = if ($env:WP_SCOPE -eq "project") { "2" } else { "1" }
+    $scopeChoice = if ($env:WP_SCOPE.ToLower().Trim() -eq "project") { "2" } else { "1" }
 } else {
 [Console]::Write("`n설치 위치를 선택하세요:`n")
 [Console]::Write("1) 전역 설치 (모든 프로젝트에서 사용)`n")
@@ -138,6 +138,11 @@ function Install-Tool {
     }
     
     Write-Host "✓ $($paths.Label): $TargetDir ($($SkillFiles.Count)개 파일)" -ForegroundColor Green
+}
+
+if ($tools.Count -eq 0) {
+    Write-Host "설치할 도구를 못 알아들었어요: '$toolChoice'. claude, codex, gemini, opencode, antigravity, all 중에서 적어 주세요." -ForegroundColor Red
+    exit 1
 }
 
 # Install selected tools

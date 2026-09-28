@@ -60,13 +60,15 @@ function readClaudeCode() {
   const turns = []
   for (const { f, exact } of useFiles) {
     const fileTurns = []
-    const seen = new Set()
+    const queued = new Map()  // 큐(enqueue)에 들어간 문장 → 아직 짝(user 레코드)을 못 만난 개수
     for (const line of readFileSync(f, 'utf8').split('\n')) {
       if (!line) continue
       let d; try { d = JSON.parse(line) } catch { continue }
       const t = d.timestamp ? new Date(d.timestamp) : null
       if (d.type === 'queue-operation' && d.operation === 'enqueue' && d.content) {
-        fileTurns.push({ t, who: 'user', text: d.content.trim(), tools: [], errors: [], src: f, queued: true }); continue
+        const text = d.content.trim()
+        queued.set(text, (queued.get(text) || 0) + 1)  // 뒤에 같은 user 레코드가 오면 그건 이 메시지의 짝이다
+        fileTurns.push({ t, who: 'user', text, tools: [], errors: [], src: f, queued: true }); continue
       }
       if (d.type !== 'user' && d.type !== 'assistant') continue
       const m = d.message || {}; const c = m.content
@@ -82,8 +84,7 @@ function readClaudeCode() {
         text = text.trim()
         if (text.startsWith('<') || text.startsWith('This session is being continued') || text.startsWith('[Request interrupted')) text = ''
         if (!text && !errors.length && !answers.length) continue
-        if (text && seen.has(text)) text = ''  // 큐 메시지가 user로도 남은 경우
-        if (text) seen.add(text)
+        if (text && queued.get(text)) { queued.set(text, queued.get(text) - 1); text = '' }  // 큐 메시지의 짝. 나중에 같은 문장을 일부러 다시 보낸 건 짝이 없어 남는다
         fileTurns.push({ t, who: 'user', text, tools: [], errors, answers, src: f })
       } else {
         let text = ''; const tools = []
@@ -254,7 +255,7 @@ for (const a of ais) for (const tl of a.tools || []) {
 }
 for (const a of ais) for (const u of (a.text.match(/https?:\/\/[^\s)\]>"']+/g) || [])) if (!/localhost|127\.0\.0\.1/.test(u)) urls.add(u)
 const errorsN = turns.reduce((n, x) => n + (x.errors ? x.errors.length : 0), 0)
-const models = [...new Set(ais.map(a => a.model).filter(Boolean))]
+const models = [...new Set(ais.map(a => a.model).filter(m => m && !m.startsWith('<')))]
 const outTokens = ais.reduce((n, a) => n + (a.out_tokens || 0), 0)
 const commits = cmds.filter(c => /git commit/.test(c)).length
 const deploys = cmds.filter(c => /(^|&&|;|\|)\s*(npx\s+)?(vercel|netlify|firebase deploy|wrangler deploy|gh-pages)\b/m.test(c)).length

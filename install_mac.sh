@@ -28,8 +28,11 @@ SKILL_FILES=(
 
 # 무입력 설치: install_mac.sh [claude|codex|gemini|opencode|antigravity|all, 쉼표 구분] [global|project]
 # 또는 환경변수 WP_TOOLS, WP_SCOPE. AI 에이전트가 대신 설치할 때 쓴다(메뉴를 묻지 않는다).
-ARG_TOOLS="${1:-${WP_TOOLS:-}}"
-ARG_SCOPE="${2:-${WP_SCOPE:-}}"
+ARG_TOOLS="$(echo "${1:-${WP_TOOLS:-}}" | tr '[:upper:]' '[:lower:]' | tr -d ' ')"
+ARG_SCOPE="$(echo "${2:-${WP_SCOPE:-}}" | tr '[:upper:]' '[:lower:]' | tr -d ' ')"
+if [ -n "$ARG_SCOPE" ] && [ "$ARG_SCOPE" != "global" ] && [ "$ARG_SCOPE" != "project" ]; then
+    echo "설치 위치는 global 또는 project 여야 해요: '$ARG_SCOPE'" >&2; exit 1
+fi
 
 # Step 1: Select scope (global or project)
 if [ -n "$ARG_SCOPE" ]; then
@@ -149,6 +152,10 @@ install_tool() {
 # Step 3: Install selected tools
 echo ""
 echo "설치 중..."
+if [ ${#TOOLS_TO_INSTALL[@]} -eq 0 ]; then
+    echo "설치할 도구를 못 알아들었어요: '${ARG_TOOLS:-$tool_choice}'. claude, codex, gemini, opencode, antigravity, all 중에서 적어 주세요." >&2
+    exit 1
+fi
 for tool in "${TOOLS_TO_INSTALL[@]}"; do
     install_tool "$tool" "$SCOPE"
 done
