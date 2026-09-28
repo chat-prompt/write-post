@@ -10,6 +10,7 @@ $SkillFiles = @(
     "SKILL.md",
     "references/devlog-guide.md",
     "references/best-cases-185.md",
+    "references/google-top300.md",
     "references/seo-geo-brief.md",
     "references/rules.md",
     "references/post-templates.md",

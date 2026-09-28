@@ -106,6 +106,16 @@ def main():
     check("볼드 경계에 문장부호·기호 없음", not bold_bad, f"{len(bold_bad)}건")
     h1 = re.findall(r"^#\s", body, flags=re.M)
     check("H1은 하나", len(h1) <= 1, f"{len(h1)}개")
+    # 8-1 분량·소제목 (구글 상위 300페이지: 2,000자 미만 개인 글은 1~3위 없음, 중앙값 4,100자, H2 5~7개)
+    prose = re.sub(r"```.*?```", "", body, flags=re.S); prose = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", prose); prose = re.sub(r"^#.*$", "", prose, flags=re.M)
+    nchar = len(re.sub(r"\s", "", prose))
+    check("본문 2,000자 이상(공백 제외)", nchar >= 2000, f"{nchar:,}자")
+    warn("본문 2,500자 이상(목표 3,000~4,000)", nchar >= 2500, f"{nchar:,}자. 기록에서 더 가져온다: AI가 한 일 순서, 설정값, 시도 순서, 결과 묘사")
+    h2s = re.findall(r"^##\s+(.+)$", body, flags=re.M)
+    warn("H2 5~7개", 5 <= len(h2s) <= 7, f"{len(h2s)}개")
+    if a.keyword:
+        kw_h2 = [h for h in h2s if a.keyword in h or (a.keyword_en and a.keyword_en.lower() in h.lower())]
+        warn("H2 2개 이상에 도구명", len(kw_h2) >= 2, f"{len(kw_h2)}개")
     # 9 모바일 가독성
     paras = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip() and not p.strip().startswith(("#", "-", "*", ">", "|", "```", "!", "<")) and not re.match(r"\d+[.)]\s", p.strip())]
     long_p = [p for p in paras if len(p) > 260]
