@@ -57,6 +57,9 @@ def main():
     first = sents[0] if sents else ""
     bad = re.search(r"에 대해|오늘은|알아볼게요|알아보겠|최근 많은|소개합니다", first)
     check("첫 문장", "주제 설명형" if bad else "장면/답으로 시작", not bad, first[:40])
+    feel = re.findall(r"(민망|부끄|당황|짜증|답답|뿌듯|설레|억울|허탈|우겼|자신 있게|솔직히|사실은|망했|눈물)", t)
+    if feel:
+        print(f"[주의] 감정·태도 표현 {len(feel)}개: {sorted(set(feel))}  → 세션의 멤버 말이나 확인 답에 있는 것만 남긴다 (자동으로 못 가른다)")
     print()
     if fails:
         print(f"고칠 것 {len(fails)}개: " + ", ".join(fails)); sys.exit(1)

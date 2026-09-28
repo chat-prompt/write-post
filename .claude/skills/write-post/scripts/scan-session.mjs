@@ -101,13 +101,17 @@ const STUCK = /(안\s?돼|안\s?됨|안\s?나와|안\s?되|다시|아니|왜|뭐
 const stuck = []
 for (let i = 0; i < turns.length; i++) {
   const x = turns[i]
-  if (x.who === 'user' && x.errors && x.errors.length) stuck.push({ kind: 'tool_error', t: x.t, text: x.errors[0], next_user: null })
+  if (x.who === 'user' && x.errors && x.errors.length) {
+    // 도구 에러는 그 뒤 멤버가 반응했을 때만 막힌 순간이다. 조용히 지나간 에러는 글감이 아니다.
+    const nextU = turns.slice(i + 1).find(y => y.who === 'user' && y.text)
+    if (nextU && STUCK.test(nextU.text)) stuck.push({ kind: 'tool_error', t: x.t, text: x.errors[0], next_user: null })
+  }
   if (x.who === 'user' && x.text && STUCK.test(x.text)) {
     const prevAi = [...turns.slice(0, i)].reverse().find(y => y.who === 'ai' && y.text)
-    stuck.push({ kind: 'user_pushback', t: x.t, text: x.text, before_ai: prevAi ? prevAi.text.slice(0, 300) : null })
+    stuck.push({ kind: 'user_pushback', t: x.t, text: x.text, before_ai: prevAi ? prevAi.text.slice(0, 800) : null })
   }
-  if (x.who === 'ai' && /(못 했|실패했|되지 않|오류가|에러가|막혔|권한이 없|찾지 못)/.test(x.text)) stuck.push({ kind: 'ai_reports_block', t: x.t, text: x.text.slice(0, 300) })
-  else if (x.who === 'ai' && /(이 아니라|가 아니라|은 아니고|는 아니고|잘못|않습니다\. )/.test(x.text.slice(0, 160))) stuck.push({ kind: 'ai_corrects', t: x.t, text: x.text.slice(0, 300) })
+  if (x.who === 'ai' && /(못 했|실패했|되지 않|오류가|에러가|막혔|권한이 없|찾지 못)/.test(x.text)) stuck.push({ kind: 'ai_reports_block', t: x.t, text: x.text.slice(0, 800) })
+  else if (x.who === 'ai' && /(이 아니라|가 아니라|은 아니고|는 아니고|잘못|않습니다\. )/.test(x.text.slice(0, 160))) stuck.push({ kind: 'ai_corrects', t: x.t, text: x.text.slice(0, 800) })
 }
 // 방향 바꾼 한 마디: 막힌 지점 다음에 온 사용자 메시지
 const PRI = { user_pushback: 0, ai_reports_block: 1, ai_corrects: 2, tool_error: 3 }
@@ -194,7 +198,7 @@ for (let i = 0; i < turns.length; i++) {
       else if (tl.name === 'AskUserQuestion') acts.push(`질문: ${(tl.q || []).join(' / ').slice(0, 160)}`)
       else if (tl.url) acts.push(`열어 봄: ${tl.url}`)
     }
-    if (a.text) acts.push(`AI: ${a.text.replace(/\s+/g, ' ').slice(0, 220)}`)
+    if (a.text) acts.push(`AI: ${a.text.replace(/\s+/g, ' ').slice(0, 400)}`)
   }
   const uniq = [...new Set(acts)].slice(0, 14)
   if (uniq.length) L.push(...uniq.map(s => `- ${s}`), '')
