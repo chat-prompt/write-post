@@ -21,22 +21,52 @@ const days = Number(get('--days', 30))
 
 // ---------- 1. 읽기 ----------
 // turn: { t: Date|null, who: 'user'|'ai', text, tools:[{name, path, cmd, url, q}], errors:[str], model, out_tokens }
+// 현재 폴더 이름이나 경로가 든 턴인가. 부모 폴더에서 띄운 세션에서 이 폴더 작업만 골라낼 때 쓴다.
+const CWD_BASE = basename(cwd)
+const mentionsCwd = x => {
+  if (x.text && (x.text.includes(cwd) || x.text.includes(CWD_BASE))) return true
+  for (const tl of x.tools || []) if ((tl.path && tl.path.startsWith(cwd)) || (tl.cmd && (tl.cmd.includes(cwd) || tl.cmd.includes(CWD_BASE)))) return true
+  return false
+}
+// 부모 폴더 세션의 턴은 30분 블록 단위로, 이 폴더를 언급한 블록만 남긴다.
+function keepRelevantBlocks(turns) {
+  const blocks = []; let cur = []
+  for (const x of turns) {
+    if (cur.length && x.t && cur[cur.length - 1].t && x.t - cur[cur.length - 1].t > 30 * 60000) { blocks.push(cur); cur = [] }
+    cur.push(x)
+  }
+  if (cur.length) blocks.push(cur)
+  return blocks.filter(b => b.some(mentionsCwd)).flat()
+}
 function readClaudeCode() {
-  const enc = cwd.replace(/[^A-Za-z0-9]/g, '-')
-  const dir = join(homedir(), '.claude', 'projects', enc)
-  if (!existsSync(dir)) return { turns: [], files: [] }
+  const root = join(homedir(), '.claude', 'projects')
+  if (!existsSync(root)) return { turns: [], files: [] }
   const since = Date.now() - days * 864e5
-  const files = readdirSync(dir).filter(f => f.endsWith('.jsonl') && !f.startsWith('agent-'))
-    .map(f => join(dir, f)).filter(f => statSync(f).mtimeMs >= since)
+  const encOf = p => p.replace(/[^A-Za-z0-9]/g, '-')
+  // 정확히 이 폴더의 세션 + 상위 폴더에서 띄운 세션(이 폴더를 언급한 블록만)
+  const dirs = []
+  let p = cwd
+  while (true) { const d = join(root, encOf(p)); if (existsSync(d)) dirs.push({ dir: d, exact: p === cwd }); const up = resolve(p, '..'); if (up === p || up === homedir() || up === '/') break; p = up }
+  const files = []
+  for (const { dir, exact } of dirs) for (const f of readdirSync(dir)) {
+    if (!f.endsWith('.jsonl') || f.startsWith('agent-')) continue
+    const full = join(dir, f); if (statSync(full).mtimeMs < since) continue
+    if (!exact) { const head = readFileSync(full, 'utf8'); if (!head.includes(cwd) && !head.includes(CWD_BASE)) continue }  // 이 폴더 얘기가 없는 상위 세션은 통째로 제외
+    files.push({ f: full, exact })
+  }
+  // 이 폴더에서 띄운 세션이 하나라도 있으면 상위 폴더 세션은 보지 않는다(다른 작업이 섞인다).
+  const hasExact = files.some(x => x.exact)
+  const useFiles = hasExact ? files.filter(x => x.exact) : files
   const turns = []
-  for (const f of files) {
+  for (const { f, exact } of useFiles) {
+    const fileTurns = []
     const seen = new Set()
     for (const line of readFileSync(f, 'utf8').split('\n')) {
       if (!line) continue
       let d; try { d = JSON.parse(line) } catch { continue }
       const t = d.timestamp ? new Date(d.timestamp) : null
       if (d.type === 'queue-operation' && d.operation === 'enqueue' && d.content) {
-        turns.push({ t, who: 'user', text: d.content.trim(), tools: [], errors: [], src: f, queued: true }); continue
+        fileTurns.push({ t, who: 'user', text: d.content.trim(), tools: [], errors: [], src: f, queued: true }); continue
       }
       if (d.type !== 'user' && d.type !== 'assistant') continue
       const m = d.message || {}; const c = m.content
@@ -54,7 +84,7 @@ function readClaudeCode() {
         if (!text && !errors.length && !answers.length) continue
         if (text && seen.has(text)) text = ''  // 큐 메시지가 user로도 남은 경우
         if (text) seen.add(text)
-        turns.push({ t, who: 'user', text, tools: [], errors, answers, src: f })
+        fileTurns.push({ t, who: 'user', text, tools: [], errors, answers, src: f })
       } else {
         let text = ''; const tools = []
         for (const x of c || []) {
@@ -64,12 +94,13 @@ function readClaudeCode() {
             tools.push({ name: x.name, path: inp.file_path || inp.notebook_path || null, cmd: inp.command || null, url: inp.url || null, q: x.name === 'AskUserQuestion' ? (inp.questions || []).map(q => q.question) : null })
           }
         }
-        turns.push({ t, who: 'ai', text: text.trim(), tools, errors: [], model: m.model || null, out_tokens: (m.usage || {}).output_tokens || 0, src: f })
+        fileTurns.push({ t, who: 'ai', text: text.trim(), tools, errors: [], model: m.model || null, out_tokens: (m.usage || {}).output_tokens || 0, src: f })
       }
     }
+    turns.push(...(exact ? fileTurns : keepRelevantBlocks(fileTurns)))
   }
   turns.sort((a, b) => (a.t?.getTime() || 0) - (b.t?.getTime() || 0))
-  return { turns, files }
+  return { turns, files: useFiles.map(x => x.f) }
 }
 
 function readPaste(file) {
@@ -77,10 +108,14 @@ function readPaste(file) {
   const marks = /^\s*(?:\[?(나|사용자|User|You|You said|나의 말|질문)\]?\s*[:：]?|\[?(AI|Assistant|ChatGPT|Claude|Gemini|제미나이|클로드|챗GPT|ChatGPT said|답변)\]?\s*[:：]?)\s*$/im
   const turns = []; let cur = null
   for (const line of raw.split('\n')) {
-    const m = line.match(/^\s*\[?(나|사용자|User|You|You said|나의 말|질문|AI|Assistant|ChatGPT|Claude|Gemini|제미나이|클로드|챗GPT|ChatGPT said|답변)\]?\s*[:：]?\s*(.*)$/i)
-    if (m) {
-      const who = /^(나|사용자|User|You|You said|나의 말|질문)$/i.test(m[1]) ? 'user' : 'ai'
-      cur = { t: null, who, text: m[2] || '', tools: [], errors: [], src: file }; turns.push(cur)
+    // 화자 표시로 인정하는 꼴: "[나]", "나:", "나의 말:", "User:", "You said:", 또는 그 단어 하나만 있는 줄. "나중에…", "질문이…"처럼 본문 첫 단어는 잘라 내지 않는다.
+    const NAMES = '나|사용자|User|You|You said|나의 말|질문|AI|Assistant|ChatGPT|ChatGPT의 말|Claude|Gemini|제미나이|클로드|챗GPT|ChatGPT said|답변'
+    const m = line.match(new RegExp(`^\\s*(?:\\[(${NAMES})\\]|(${NAMES})\\s*[:：]|(${NAMES}))\\s*(.*)$`, 'i'))
+    const name = m && (m[1] || m[2] || m[3])
+    const ok = m && (m[1] || m[2] || (m[3] && !m[4]))  // 대괄호, 콜론, 아니면 단독 행
+    if (ok) {
+      const who = /^(나|사용자|User|You|You said|나의 말|질문)$/i.test(name) ? 'user' : 'ai'
+      cur = { t: null, who, text: m[4] || '', tools: [], errors: [], src: file }; turns.push(cur)
     } else if (cur) cur.text += '\n' + line
   }
   for (const x of turns) x.text = x.text.trim()
@@ -104,30 +139,34 @@ async function readCodex() {
   for (const f of files) {
     let meta; try { meta = JSON.parse(firstLine(f)) } catch { continue }
     const p = meta.payload || {}
-    if (meta.type !== 'session_meta' || resolve(p.cwd || '') !== cwd) continue
+    if (meta.type !== 'session_meta') continue
+    const scwd = resolve(p.cwd || '/nonexistent'); const exact = scwd === cwd
+    if (!exact && !cwd.startsWith(scwd + '/')) continue  // 상위 폴더에서 띄운 코덱스 세션은 허용, 아래에서 이 폴더 언급 블록만 남김
     if (p.source && typeof p.source === 'object' && p.source.subagent) continue  // 내부 보조 세션
     if (statSync(f).size > 400 * 1024 * 1024) { skipped.push(f); continue }
-    mine.push(f)
+    mine.push({ f, exact })
   }
+  const hasExact = mine.some(x => x.exact)
+  const useMine = hasExact ? mine.filter(x => x.exact) : mine
   const turns = []
-  for (const f of mine) {
-    const seen = new Set(); let model = null, outTok = 0
+  for (const { f, exact } of useMine) {
+    const seen = new Set(); let model = null, outTok = 0; const fileTurns = []
     const rl = createInterface({ input: createReadStream(f, { encoding: 'utf8' }), crlfDelay: Infinity })
     for await (const line of rl) {
       let d; try { d = JSON.parse(line) } catch { continue }
       const t = d.timestamp ? new Date(d.timestamp) : null; const p = d.payload || {}
       if (d.type === 'turn_context' && p.model) model = p.model
       if (d.type === 'event_msg' && p.type === 'token_count') outTok = Math.max(outTok, ((p.info || {}).total_token_usage || {}).output_tokens || 0)
-      if (d.type === 'event_msg' && p.type === 'user_message' && p.message) { const text = String(p.message).trim(); if (!text.startsWith('<') && !seen.has(text)) { seen.add(text); turns.push({ t, who: 'user', text, tools: [], errors: [], src: f }) } continue }
-      if (d.type === 'event_msg' && p.type === 'agent_message' && p.message) { turns.push({ t, who: 'ai', text: String(p.message).trim(), tools: [], errors: [], model, out_tokens: 0, src: f }); continue }
+      if (d.type === 'event_msg' && p.type === 'user_message' && p.message) { const text = String(p.message).trim(); if (!text.startsWith('<') && !seen.has(text)) { seen.add(text); fileTurns.push({ t, who: 'user', text, tools: [], errors: [], src: f }) } continue }
+      if (d.type === 'event_msg' && p.type === 'agent_message' && p.message) { fileTurns.push({ t, who: 'ai', text: String(p.message).trim(), tools: [], errors: [], model, out_tokens: 0, src: f }); continue }
       if (d.type !== 'response_item') continue
       if (p.type === 'message' && p.role === 'user') {
         const text = (p.content || []).map(c => c.text || '').join('').trim()
         if (!text || text.startsWith('<') || text.startsWith('# Files mentioned') || seen.has(text)) continue
-        seen.add(text); turns.push({ t, who: 'user', text, tools: [], errors: [], src: f })
+        seen.add(text); fileTurns.push({ t, who: 'user', text, tools: [], errors: [], src: f })
       } else if (p.type === 'message' && p.role === 'assistant') {
         const text = (p.content || []).map(c => c.text || '').join('').trim()
-        if (text) turns.push({ t, who: 'ai', text, tools: [], errors: [], model, out_tokens: 0, src: f })
+        if (text) fileTurns.push({ t, who: 'ai', text, tools: [], errors: [], model, out_tokens: 0, src: f })
       } else if (p.type === 'function_call' || p.type === 'custom_tool_call') {
         const name = p.name || ''; let args = p.arguments || p.input || ''
         let cmd = null, path = null, q = null
@@ -139,17 +178,18 @@ async function readCodex() {
         if (cmd) tools.push({ name: 'Bash', cmd })
         if (q) tools.push({ name: 'AskUserQuestion', q })
         if (!tools.length && name) tools.push({ name })
-        turns.push({ t, who: 'ai', text: '', tools, errors: [], model, out_tokens: 0, src: f })
+        fileTurns.push({ t, who: 'ai', text: '', tools, errors: [], model, out_tokens: 0, src: f })
       } else if (p.type === 'function_call_output' || p.type === 'custom_tool_call_output') {
         const out = typeof p.output === 'string' ? p.output : (p.output || []).map(c => c.text || '').join('')
-        if (/(exit code:?\s*[1-9]|^error|Error:|Traceback)/im.test(out.slice(0, 400))) turns.push({ t, who: 'user', text: '', tools: [], errors: [out.slice(0, 300)], src: f })
+        if (/(exit code:?\s*[1-9]|^error|Error:|Traceback)/im.test(out.slice(0, 400))) fileTurns.push({ t, who: 'user', text: '', tools: [], errors: [out.slice(0, 300)], src: f })
       }
     }
     // 이 파일의 AI 턴에 모델·토큰을 채운다
-    const ais = turns.filter(x => x.src === f && x.who === 'ai'); if (ais.length) { ais[ais.length - 1].out_tokens = outTok; for (const a of ais) a.model = a.model || model }
+    const ais = fileTurns.filter(x => x.who === 'ai'); if (ais.length) { ais[ais.length - 1].out_tokens = outTok; for (const a of ais) a.model = a.model || model }
+    turns.push(...(exact ? fileTurns : keepRelevantBlocks(fileTurns)))
   }
   turns.sort((a, b) => (a.t?.getTime() || 0) - (b.t?.getTime() || 0))
-  return { turns, files: mine, skipped }
+  return { turns, files: useMine.map(x => x.f), skipped }
 }
 
 let turns, files, sources = []
@@ -165,32 +205,43 @@ if (!turns.length) {
   console.error(paste ? '붙여 넣은 대화에서 턴을 찾지 못했어요.' : `이 폴더의 Claude Code·Codex 세션을 찾지 못했어요: ${cwd}`)
   process.exit(2)
 }
+// 상한: 요청이 80개를 넘으면 최근 것부터 80개가 들어가는 블록까지만 남긴다(글 한 편 재료로 충분).
+const MAX_REQ = Number(get('--max-requests', 80))
+{
+  const uidx = turns.map((x, i) => (x.who === 'user' && x.text ? i : -1)).filter(i => i >= 0)
+  if (uidx.length > MAX_REQ) {
+    const cut = uidx[uidx.length - MAX_REQ]
+    console.error(`요청이 ${uidx.length}개라 최근 ${MAX_REQ}개만 씁니다. 더 앞 작업이 필요하면 --max-requests 숫자를 키우세요.`)
+    turns.splice(0, cut)
+  }
+}
 
 // ---------- 2. 재료 뽑기 ----------
 const users = turns.filter(x => x.who === 'user' && x.text && !x.text.startsWith('/'))
 const ais = turns.filter(x => x.who === 'ai')
 const firstReq = users.find(x => x.text.length >= 4) || users[0] || null
-const STUCK = /(안\s?돼|안\s?됨|안\s?나와|안\s?되|다시|아니|왜|뭐야|에러|오류|이상|틀렸|실패|막혔|안 보여|안 열|깨져)/
+const STUCK = /(안\s?돼|안\s?됨|안\s?나와|안\s?되네|안\s?되잖|안\s?열|안\s?보여|다시\s?(해|만들|찾|봐|돌)|아니야|아니 |아닌데|왜 안|왜 이래|뭐야|에러|오류|틀렸|실패|막혔|깨져|이상해|이상한데)/
+turns.forEach((x, i) => { x.i = i })
 const stuck = []
 for (let i = 0; i < turns.length; i++) {
   const x = turns[i]
   if (x.who === 'user' && x.errors && x.errors.length) {
     // 도구 에러는 그 뒤 멤버가 반응했을 때만 막힌 순간이다. 조용히 지나간 에러는 글감이 아니다.
     const nextU = turns.slice(i + 1).find(y => y.who === 'user' && y.text)
-    if (nextU && STUCK.test(nextU.text)) stuck.push({ kind: 'tool_error', t: x.t, text: x.errors[0], next_user: null })
+    if (nextU && STUCK.test(nextU.text)) stuck.push({ kind: 'tool_error', t: x.t, i, text: x.errors[0], next_user: null })
   }
-  if (x.who === 'user' && x.text && x.text.length <= 600 && STUCK.test(x.text)) {  // 긴 붙여넣기는 되돌린 말이 아니다
+  if (x.who === 'user' && x.text && x.text.length <= 600 && x !== firstReq && STUCK.test(x.text)) {  // 긴 붙여넣기와 첫 요청은 되돌린 말이 아니다
     const prevAi = [...turns.slice(0, i)].reverse().find(y => y.who === 'ai' && y.text)
-    stuck.push({ kind: 'user_pushback', t: x.t, text: x.text, before_ai: prevAi ? prevAi.text.slice(0, 800) : null })
+    stuck.push({ kind: 'user_pushback', t: x.t, i, text: x.text, before_ai: prevAi ? prevAi.text.slice(0, 800) : null })
   }
-  if (x.who === 'ai' && /(못 했|실패했|되지 않|오류가|에러가|막혔|권한이 없|찾지 못)/.test(x.text)) stuck.push({ kind: 'ai_reports_block', t: x.t, text: x.text.slice(0, 800) })
-  else if (x.who === 'ai' && /(이 아니라|가 아니라|은 아니고|는 아니고|잘못|않습니다\. )/.test(x.text.slice(0, 160))) stuck.push({ kind: 'ai_corrects', t: x.t, text: x.text.slice(0, 800) })
+  if (x.who === 'ai' && /(못 했|실패했|되지 않|오류가|에러가|막혔|권한이 없|찾지 못)/.test(x.text)) stuck.push({ kind: 'ai_reports_block', t: x.t, i, text: x.text.slice(0, 800) })
+  else if (x.who === 'ai' && /(이 아니라|가 아니라|은 아니고|는 아니고|잘못|않습니다\. )/.test(x.text.slice(0, 160))) stuck.push({ kind: 'ai_corrects', t: x.t, i, text: x.text.slice(0, 800) })
 }
 // 방향 바꾼 한 마디: 막힌 지점 다음에 온 사용자 메시지
 const PRI = { user_pushback: 0, ai_reports_block: 1, ai_corrects: 2, tool_error: 3 }
 stuck.sort((a, b) => PRI[a.kind] - PRI[b.kind] || (a.t?.getTime() || 0) - (b.t?.getTime() || 0))
 for (const s of stuck) {
-  const after = users.find(u => s.t && u.t && u.t > s.t && u.text !== s.text)
+  const after = users.find(u => u.i > s.i && u.text !== s.text)  // 시각이 없는 붙여 넣기에서도 순서로 찾는다
   s.next_user = after ? after.text : null
 }
 const written = new Set(), edited = new Set(), cmds = [], urls = new Set(), asks = []

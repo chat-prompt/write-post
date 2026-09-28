@@ -112,7 +112,7 @@ def main():
     # 8-1 분량·소제목 (구글 상위 300페이지: 2,000자 미만 개인 글은 1~3위 없음, 중앙값 4,100자, H2 5~7개)
     prose = re.sub(r"```.*?```", "", body, flags=re.S); prose = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", prose); prose = re.sub(r"^#.*$", "", prose, flags=re.M)
     nchar = len(re.sub(r"\s", "", prose))
-    check("본문 2,000자 이상(공백 제외)", nchar >= 2000, f"{nchar:,}자")
+    check("본문 2,000자 이상(공백 제외)", nchar >= 2000, f"{nchar:,}자. 지어내지 말고 ②의 9번(왜/어디에/다음에) 답을 받아 채운다. 그래도 안 되면 짧게 낸다")
     warn("본문 2,500자 이상(목표 3,000~4,000)", nchar >= 2500, f"{nchar:,}자. 기록에서 더 가져온다: AI가 한 일 순서, 설정값, 시도 순서, 결과 묘사")
     h2s = re.findall(r"^##\s+(.+)$", body, flags=re.M)
     warn("H2 5~7개", 5 <= len(h2s) <= 7, f"{len(h2s)}개")

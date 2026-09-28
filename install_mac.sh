@@ -132,8 +132,9 @@ install_tool() {
             ;;
     esac
     
-    [ -d "$target_dir" ] && rm -rf "$target_dir"
+    # 폴더를 통째로 지우지 않는다(node_modules, 멤버가 둔 파일 보존). 우리가 관리하는 파일만 새로 받는다.
     mkdir -p "$target_dir/references" "$target_dir/scripts"
+    for f in "${SKILL_FILES[@]}"; do rm -f "$target_dir/$f"; done
     
     for f in "${SKILL_FILES[@]}"; do
         if ! curl -fsSL "$REPO_URL/.claude/skills/write-post/$f" -o "$target_dir/$f"; then
