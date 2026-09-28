@@ -14,13 +14,25 @@
 
 ## 설치
 
-### Mac / Linux
+### 제일 쉬운 방법: 링크 하나
+
+쓰는 AI 도구(클로드 코드, 코덱스, 제미나이 CLI)를 열고 이렇게 붙여 넣으세요.
+
+```
+https://github.com/chat-prompt/write-post 이 스킬 설치해 줘
+```
+
+AI가 아래 "AI 에이전트가 설치할 때"를 읽고 알아서 깔아요. 끝나면 도구를 한 번 껐다 켜고 `/write-post`라고 치면 돼요.
+
+### 직접 설치 (터미널)
+
+#### Mac / Linux
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/chat-prompt/write-post/main/install_mac.sh | bash
 ```
 
-### Windows (PowerShell)
+#### Windows (PowerShell)
 
 ```powershell
 iwr -useb https://raw.githubusercontent.com/chat-prompt/write-post/main/install_win.ps1 | iex
@@ -29,6 +41,24 @@ iwr -useb https://raw.githubusercontent.com/chat-prompt/write-post/main/install_
 설치할 때 도구(Claude Code, OpenCode, Codex CLI, Gemini CLI, Antigravity)와 위치(전역 또는 현재 폴더)를 고릅니다. 예전 버전이 깔려 있어도 같은 명령으로 덮어쓰면 최신이 됩니다.
 
 설치 후에는 **쓰고 있는 AI 도구를 다시 시작**해야 스킬이 보입니다.
+
+### AI 에이전트가 설치할 때 (사람은 안 읽어도 됩니다)
+
+메뉴를 묻지 않는 명령이다. 지금 실행 중인 도구 이름을 넣고, 전역으로 설치한다. 설치 뒤 `SKILL.md`가 있는지 확인하고, 사용자에게 "도구를 껐다 켜고 /write-post라고 치세요"라고 알린다. 다른 것은 설치하지 않는다.
+
+```bash
+# Mac / Linux. 도구: claude | codex | gemini | opencode | antigravity | all (쉼표로 여러 개)
+curl -fsSL https://raw.githubusercontent.com/chat-prompt/write-post/main/install_mac.sh | bash -s -- claude global
+ls ~/.claude/skills/write-post/SKILL.md
+```
+
+```powershell
+# Windows
+$env:WP_TOOLS="claude"; $env:WP_SCOPE="global"; iwr -useb https://raw.githubusercontent.com/chat-prompt/write-post/main/install_win.ps1 | iex
+Test-Path "$env:USERPROFILE\.claude\skills\write-post\SKILL.md"
+```
+
+코덱스는 `codex`, 제미나이 CLI는 `gemini`. 어느 도구인지 모르면 사용자에게 한 번 묻는다.
 
 ### 있으면 더 좋은 것 (없어도 됩니다)
 

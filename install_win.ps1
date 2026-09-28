@@ -4,7 +4,8 @@
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
 
-$RepoUrl = "https://raw.githubusercontent.com/chat-prompt/write-post/main"
+$RepoUrl = if ($env:WRITE_POST_REPO_URL) { $env:WRITE_POST_REPO_URL } else { "https://raw.githubusercontent.com/chat-prompt/write-post/main" }
+# 무입력 설치: $env:WP_TOOLS = "claude,codex" (또는 all), $env:WP_SCOPE = "global"|"project". AI 에이전트가 대신 설치할 때 쓴다.
 $SkillFiles = @(
     "SKILL.md",
     "references/devlog-guide.md",
@@ -28,6 +29,9 @@ $SkillFiles = @(
 )
 
 # Tool selection menu
+if ($env:WP_TOOLS) {
+    $toolChoice = $env:WP_TOOLS.Replace("all","6").Replace("claude","1").Replace("opencode","2").Replace("codex","3").Replace("gemini","4").Replace("antigravity","5")
+} else {
 [Console]::Write("어떤 도구에 설치할까요?`n")
 [Console]::Write("1) Claude Code`n")
 [Console]::Write("2) OpenCode`n")
@@ -37,13 +41,18 @@ $SkillFiles = @(
 [Console]::Write("6) 전체`n")
 [Console]::Write("선택 (1-6, 쉼표로 구분 가능): ")
 $toolChoice = [Console]::ReadLine()
+}
 
 # Scope selection
+if ($env:WP_SCOPE) {
+    $scopeChoice = if ($env:WP_SCOPE -eq "project") { "2" } else { "1" }
+} else {
 [Console]::Write("`n설치 위치를 선택하세요:`n")
 [Console]::Write("1) 전역 설치 (모든 프로젝트에서 사용)`n")
 [Console]::Write("2) 프로젝트 설치 (현재 폴더에서만 사용)`n")
 [Console]::Write("선택 (1/2): ")
 $scopeChoice = [Console]::ReadLine()
+}
 
 if ($scopeChoice -eq "1") {
     $Scope = "global"

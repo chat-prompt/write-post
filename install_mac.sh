@@ -2,7 +2,7 @@
 
 # write-post installer for Mac/Linux - Multi-tool support
 
-REPO_URL="https://raw.githubusercontent.com/chat-prompt/write-post/main"
+REPO_URL="${WRITE_POST_REPO_URL:-https://raw.githubusercontent.com/chat-prompt/write-post/main}"
 SKILL_FILES=(
     "SKILL.md"
     "references/devlog-guide.md"
@@ -25,11 +25,20 @@ SKILL_FILES=(
     "scripts/preview-mobile.mjs"
 )
 
+# 무입력 설치: install_mac.sh [claude|codex|gemini|opencode|antigravity|all, 쉼표 구분] [global|project]
+# 또는 환경변수 WP_TOOLS, WP_SCOPE. AI 에이전트가 대신 설치할 때 쓴다(메뉴를 묻지 않는다).
+ARG_TOOLS="${1:-${WP_TOOLS:-}}"
+ARG_SCOPE="${2:-${WP_SCOPE:-}}"
+
 # Step 1: Select scope (global or project)
+if [ -n "$ARG_SCOPE" ]; then
+    scope_choice=$([ "$ARG_SCOPE" = "project" ] && echo 2 || echo 1)
+else
 echo "설치 위치를 선택하세요:"
 echo "1) 전역 설치 (모든 프로젝트에서 사용)"
 echo "2) 프로젝트 설치 (현재 폴더에서만 사용)"
 read -p "선택 (1/2): " scope_choice </dev/tty
+fi
 
 if [ "$scope_choice" = "1" ]; then
     SCOPE="global"
@@ -40,6 +49,9 @@ else
 fi
 
 # Step 2: Select tools
+if [ -n "$ARG_TOOLS" ]; then
+    tool_choice=$(echo "$ARG_TOOLS" | sed -e 's/all/6/' -e 's/claude/1/g' -e 's/opencode/2/g' -e 's/codex/3/g' -e 's/gemini/4/g' -e 's/antigravity/5/g')
+else
 echo ""
 echo "어떤 도구에 설치할까요?"
 echo "1) Claude Code"
@@ -49,6 +61,7 @@ echo "4) Gemini CLI"
 echo "5) Antigravity"
 echo "6) 전체"
 read -p "선택 (1-6, 쉼표로 구분 가능): " tool_choice </dev/tty
+fi
 
 # Parse tool selections
 declare -a TOOLS_TO_INSTALL

@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 // AI 작업 기록을 읽어 DEVLOG.md와 재료표(materials.json)를 만든다. 외부 패키지 없음.
 // 사용법:
-//   node scan-session.mjs                          # 현재 폴더의 Claude Code 세션
+//   node scan-session.mjs                          # 현재 폴더의 Claude Code + Codex CLI 세션
 //   node scan-session.mjs --cwd /path/to/project   # 다른 폴더
 //   node scan-session.mjs --paste chat.txt         # 붙여 넣은 대화(챗GPT·클로드 웹 등)
 //   옵션: --out DEVLOG.md  --json materials.json  --days 30 (최근 N일 세션만)
 // 출력: DEVLOG.md(사람이 읽는 기록), materials.json(재료 여덟 가지 후보). 찾지 못한 칸은 null.
-import { readFileSync, writeFileSync, readdirSync, existsSync, statSync } from 'node:fs'
+import { readFileSync, writeFileSync, readdirSync, existsSync, statSync, openSync, readSync, closeSync, createReadStream } from 'node:fs'
 import { join, basename, resolve } from 'node:path'
 import { homedir } from 'node:os'
+import { createInterface } from 'node:readline'
 
 const args = process.argv.slice(2)
 const get = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d }
@@ -87,9 +88,81 @@ function readPaste(file) {
   return { turns: turns.filter(x => x.text), files: [file] }
 }
 
-const { turns, files } = paste ? readPaste(paste) : readClaudeCode()
+// Codex CLI: ~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl. 첫 줄 session_meta의 cwd로 고른다. 파일이 아주 클 수 있어 줄 단위로 읽는다.
+function firstLine(f) {
+  const fd = openSync(f, 'r'); const buf = Buffer.alloc(65536); const n = readSync(fd, buf, 0, 65536, 0); closeSync(fd)
+  return buf.toString('utf8', 0, n).split('\n')[0]
+}
+async function readCodex() {
+  const root = join(homedir(), '.codex', 'sessions')
+  if (!existsSync(root)) return { turns: [], files: [], skipped: [] }
+  const since = Date.now() - days * 864e5
+  const files = [], skipped = []
+  const walk = d => { for (const e of readdirSync(d, { withFileTypes: true })) { const p = join(d, e.name); if (e.isDirectory()) walk(p); else if (e.name.startsWith('rollout-') && e.name.endsWith('.jsonl') && statSync(p).mtimeMs >= since) files.push(p) } }
+  walk(root)
+  const mine = []
+  for (const f of files) {
+    let meta; try { meta = JSON.parse(firstLine(f)) } catch { continue }
+    const p = meta.payload || {}
+    if (meta.type !== 'session_meta' || resolve(p.cwd || '') !== cwd) continue
+    if (p.source && typeof p.source === 'object' && p.source.subagent) continue  // 내부 보조 세션
+    if (statSync(f).size > 400 * 1024 * 1024) { skipped.push(f); continue }
+    mine.push(f)
+  }
+  const turns = []
+  for (const f of mine) {
+    const seen = new Set(); let model = null, outTok = 0
+    const rl = createInterface({ input: createReadStream(f, { encoding: 'utf8' }), crlfDelay: Infinity })
+    for await (const line of rl) {
+      let d; try { d = JSON.parse(line) } catch { continue }
+      const t = d.timestamp ? new Date(d.timestamp) : null; const p = d.payload || {}
+      if (d.type === 'turn_context' && p.model) model = p.model
+      if (d.type === 'event_msg' && p.type === 'token_count') outTok = Math.max(outTok, ((p.info || {}).total_token_usage || {}).output_tokens || 0)
+      if (d.type === 'event_msg' && p.type === 'user_message' && p.message) { const text = String(p.message).trim(); if (!text.startsWith('<') && !seen.has(text)) { seen.add(text); turns.push({ t, who: 'user', text, tools: [], errors: [], src: f }) } continue }
+      if (d.type === 'event_msg' && p.type === 'agent_message' && p.message) { turns.push({ t, who: 'ai', text: String(p.message).trim(), tools: [], errors: [], model, out_tokens: 0, src: f }); continue }
+      if (d.type !== 'response_item') continue
+      if (p.type === 'message' && p.role === 'user') {
+        const text = (p.content || []).map(c => c.text || '').join('').trim()
+        if (!text || text.startsWith('<') || text.startsWith('# Files mentioned') || seen.has(text)) continue
+        seen.add(text); turns.push({ t, who: 'user', text, tools: [], errors: [], src: f })
+      } else if (p.type === 'message' && p.role === 'assistant') {
+        const text = (p.content || []).map(c => c.text || '').join('').trim()
+        if (text) turns.push({ t, who: 'ai', text, tools: [], errors: [], model, out_tokens: 0, src: f })
+      } else if (p.type === 'function_call' || p.type === 'custom_tool_call') {
+        const name = p.name || ''; let args = p.arguments || p.input || ''
+        let cmd = null, path = null, q = null
+        try { const a = typeof args === 'string' && args.startsWith('{') ? JSON.parse(args) : null
+          if (a) { cmd = Array.isArray(a.command) ? a.command.join(' ') : (a.command || a.cmd || null); if (a.questions) q = a.questions.map(x => x.title || x.question || '') } } catch {}
+        const patch = typeof args === 'string' ? args : ''
+        const tools = []
+        for (const m of patch.matchAll(/\*\*\* (Add|Update) File: ([^\n]+)/g)) tools.push({ name: m[1] === 'Add' ? 'Write' : 'Edit', path: m[2].trim() })
+        if (cmd) tools.push({ name: 'Bash', cmd })
+        if (q) tools.push({ name: 'AskUserQuestion', q })
+        if (!tools.length && name) tools.push({ name })
+        turns.push({ t, who: 'ai', text: '', tools, errors: [], model, out_tokens: 0, src: f })
+      } else if (p.type === 'function_call_output' || p.type === 'custom_tool_call_output') {
+        const out = typeof p.output === 'string' ? p.output : (p.output || []).map(c => c.text || '').join('')
+        if (/(exit code:?\s*[1-9]|^error|Error:|Traceback)/im.test(out.slice(0, 400))) turns.push({ t, who: 'user', text: '', tools: [], errors: [out.slice(0, 300)], src: f })
+      }
+    }
+    // 이 파일의 AI 턴에 모델·토큰을 채운다
+    const ais = turns.filter(x => x.src === f && x.who === 'ai'); if (ais.length) { ais[ais.length - 1].out_tokens = outTok; for (const a of ais) a.model = a.model || model }
+  }
+  turns.sort((a, b) => (a.t?.getTime() || 0) - (b.t?.getTime() || 0))
+  return { turns, files: mine, skipped }
+}
+
+let turns, files, sources = []
+if (paste) ({ turns, files } = readPaste(paste))
+else {
+  const cc = readClaudeCode(); const cx = await readCodex()
+  turns = [...cc.turns, ...cx.turns].sort((a, b) => (a.t?.getTime() || 0) - (b.t?.getTime() || 0))
+  files = [...cc.files, ...cx.files]
+  if (cc.files.length) sources.push('claude-code'); if (cx.files.length) sources.push('codex')
+  if (cx.skipped.length) console.error(`코덱스 기록 ${cx.skipped.length}개가 400MB를 넘어 건너뛰었어요. 그 작업은 대화를 붙여 넣어 주세요.`)
+}
 if (!turns.length) {
-  console.error(paste ? '붙여 넣은 대화에서 턴을 찾지 못했어요.' : `이 폴더의 Claude Code 세션을 찾지 못했어요: ${cwd}`)
+  console.error(paste ? '붙여 넣은 대화에서 턴을 찾지 못했어요.' : `이 폴더의 Claude Code·Codex 세션을 찾지 못했어요: ${cwd}`)
   process.exit(2)
 }
 
@@ -158,7 +231,7 @@ const remaining = [
   ...(lastAi.match(/[^\n]*(아직|남은|다음 단계|미완|TODO|해야)[^\n]*/g) || []).slice(0, 5),
 ]
 const materials = {
-  source: paste ? 'paste' : 'claude-code', files: files.map(f => basename(f)), cwd,
+  source: paste ? 'paste' : sources.join('+'), files: files.map(f => basename(f)), cwd,
   date: firstT ? firstT.toISOString().slice(0, 10) : null,
   first_request: firstReq ? firstReq.text : null,
   user_messages: users.map(u => u.text),
