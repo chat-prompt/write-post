@@ -122,14 +122,13 @@ function Install-Tool {
     
     $TargetDir = if ($Scope -eq "global") { $paths.Global } else { $paths.Project }
     
-    if (Test-Path $TargetDir) {
-        Remove-Item -Recurse -Force $TargetDir
-    }
+    # 폴더를 통째로 지우지 않는다(node_modules, 멤버가 둔 파일 보존). 우리가 관리하는 파일만 새로 받는다.
     New-Item -ItemType Directory -Force -Path "$TargetDir\references" | Out-Null
     New-Item -ItemType Directory -Force -Path "$TargetDir\scripts" | Out-Null
     
     foreach ($f in $SkillFiles) {
         $out = Join-Path $TargetDir ($f -replace '/', '\')
+        if (Test-Path $out) { Remove-Item -Force $out }
         try {
             Invoke-WebRequest -UseBasicParsing -Uri "$RepoUrl/.claude/skills/write-post/$f" -OutFile $out -ErrorAction Stop
         } catch {
