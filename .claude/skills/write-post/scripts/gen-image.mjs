@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // AI 그림 한 장을 만든다. 구글 제미나이 이미지 모델을 쓴다.
 //   node gen-image.mjs --prompt "..." --out ./case-post-images/hero.png [--model gemini-2.5-flash-image] [--ratio 16:9]
-// 열쇠(API 키)는 GEMINI_API_KEY 환경변수 → ~/.gpters/write-post/keys.json 의 "gemini" 순으로 찾는다.
-// 종료 코드: 0 성공 / 2 열쇠 없음 / 3 API 오류(한도·결제·모델) / 4 인자 오류
+// API 키는 GEMINI_API_KEY 환경변수 → ~/.gpters/write-post/keys.json 의 "gemini" 순으로 찾는다.
+// 종료 코드: 0 성공 / 2 API 키 없음 / 3 API 오류(한도·결제·모델) / 4 인자 오류
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
@@ -27,7 +27,7 @@ if (opt.saveKey) {
   cur.gemini = opt.saveKey.trim()
   fs.writeFileSync(keyFile, JSON.stringify(cur, null, 2))
   try { fs.chmodSync(keyFile, 0o600) } catch {}
-  console.log(`열쇠를 저장했어요: ${keyFile}`)
+  console.log(`API 키를 저장했어요: ${keyFile}`)
   if (!opt.prompt) process.exit(0)
 }
 
@@ -39,7 +39,7 @@ if (!opt.prompt || !opt.out) {
 let key = process.env.GEMINI_API_KEY
 if (!key) { try { key = JSON.parse(fs.readFileSync(keyFile, 'utf8')).gemini } catch {} }
 if (!key) {
-  console.error('열쇠(API 키)가 없어요. https://aistudio.google.com/apikey 에서 받아서 --save-key 로 저장하세요.')
+  console.error('API 키가 없어요. https://aistudio.google.com/apikey 에서 받아서 --save-key 로 저장하세요.')
   process.exit(2)
 }
 
@@ -66,7 +66,7 @@ if (!res.ok) {
   let msg = text.slice(0, 300)
   try { msg = JSON.parse(text).error?.message || msg } catch {}
   if (res.status === 429) console.error('무료 한도를 넘었거나 결제 설정이 필요해요. 잠시 뒤 다시 하거나 이미지 없이 진행하세요.')
-  else if (res.status === 400 || res.status === 403) console.error('열쇠가 틀렸거나 이 모델을 쓸 수 없어요.')
+  else if (res.status === 400 || res.status === 403) console.error('API 키가 틀렸거나 이 모델을 쓸 수 없어요.')
   else if (res.status === 404) console.error(`모델 이름이 없어요: ${opt.model}. --model 로 다른 이름을 주세요.`)
   console.error(`(${res.status}) ${msg}`)
   process.exit(3)
