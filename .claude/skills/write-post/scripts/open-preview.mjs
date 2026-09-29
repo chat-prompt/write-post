@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // 초안(.md)을 서식 있는 HTML로 바꿔 **클립보드에 복사**한다. 멤버는 지피터스 글쓰기 화면에 붙여 넣기만 하면 제목·목록·굵게·코드가 살아서 들어간다.
 // 클립보드에 못 넣는 환경이면 HTML 파일을 브라우저로 열어 준다(거기서 전체 선택 → 복사).
-//   node open-preview.mjs AI_CASE_STUDY.md            # 클립보드에 복사 (안 되면 브라우저로 염)
+//   node open-preview.mjs AI_CASE_STUDY.md --tags "24기 GEO실험실,클로드 코드"   # 올리기 도우미 화면을 브라우저로 열고, 본문도 클립보드에 넣는다
 //   node open-preview.mjs AI_CASE_STUDY.md --open     # 브라우저로만 연다
 //   node open-preview.mjs AI_CASE_STUDY.md --no-open  # HTML 파일만 만든다
 //   node open-preview.mjs AI_CASE_STUDY.md --title    # 제목만 글자로 복사한다(제목 칸용)
@@ -18,6 +18,7 @@ const src = args.find(a => a.endsWith('.md'))
 const get = k => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : undefined }
 if (!src) { console.error('쓰는 법: node open-preview.mjs 초안.md [--out 파일.html] [--no-open]'); process.exit(1) }
 const out = path.resolve(get('--out') || src.replace(/\.md$/, '.html'))
+const tags = (get('--tags') || '').split(',').map(t => t.trim()).filter(Boolean)
 const dir = path.dirname(path.resolve(src))
 
 let md = readFileSync(src, 'utf8').replace(/\r\n/g, '\n')
@@ -74,21 +75,50 @@ while (i < lines.length) {
 }
 flushPara(para)
 
+const j = v => JSON.stringify(v)
 const page = `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(path.basename(src))}</title>
+<title>올리기 도우미: ${esc(title || path.basename(src))}</title>
 <style>
  body{margin:0;background:#fff;color:#1f2937;font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif}
- .tip{background:#fff7d6;border-bottom:1px solid #f0d97a;padding:12px 20px;font-size:15px}
+ .bar{position:sticky;top:0;z-index:9;background:#fff7d6;border-bottom:1px solid #f0d97a;padding:12px 20px;font-size:15px;line-height:1.7}
+ .bar b{display:block;margin-bottom:6px}
+ .bar .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0}
+ .bar button,.bar a.btn{font:inherit;font-size:15px;padding:6px 12px;border:1px solid #b8860b;background:#fff;border-radius:6px;cursor:pointer;color:#1f2937;text-decoration:none}
+ .bar button.ok{background:#d1fae5;border-color:#059669}
+ .bar .tag{padding:4px 10px;border:1px dashed #9ca3af;border-radius:14px;background:#fff;cursor:pointer;font-size:14px}
  .post{max-width:720px;margin:0 auto;padding:24px 20px 80px;font-size:17px;line-height:1.8}
  h1{font-size:28px;line-height:1.35} h2{font-size:22px;margin-top:40px} h3{font-size:19px}
  img{max-width:100%;height:auto;display:block;margin:12px 0}
  pre{background:#f3f4f6;padding:12px 14px;overflow:auto;border-radius:6px;font-size:14px} code{font-family:Menlo,Consolas,monospace}
  blockquote{border-left:4px solid #d1d5db;margin:0;padding:4px 16px;color:#4b5563}
 </style></head><body>
-<div class="tip">이 화면에서 전체 선택(Ctrl+A, 맥은 Cmd+A) → 복사(Ctrl+C, Cmd+C) → 지피터스 글쓰기 화면에 붙여 넣기(Ctrl+V, Cmd+V). 이 노란 줄은 같이 복사돼도 지우면 돼요.</div>
-<article class="post">
+<div class="bar">
+ <b>올리기 순서. 단추를 누르면 복사돼요. 글쓰기 화면에 붙여 넣기만 하세요.</b>
+ <div class="row"><a class="btn" href="https://www.gpters.org/new?post_type=KLxSodedLeDUiTj" target="_blank">① 글쓰기 화면 열기</a>
+ <button id="ct">② 제목 복사</button> <button id="cb">③ 본문 복사 (본문 칸에서 전체 선택 → 붙여 넣기)</button></div>
+ ${tags.length ? `<div class="row">④ 태그 칸에 하나씩 치고 목록에서 고르기: ${tags.map(t => `<span class="tag" data-t="${esc(t)}">${esc(t)}</span>`).join(' ')} <small>(누르면 복사)</small></div>` : ''}
+ <div class="row"><small>⑤ 이미지는 발행메모에 적힌 자리에 넣고 → 게시</small></div>
+</div>
+<article class="post" id="post">
 ${html.join('\n')}
-</article></body></html>`
+</article>
+<script>
+const TITLE = ${j(title)};
+const done = (el, msg) => { const t = el.textContent; el.textContent = msg; el.classList.add('ok'); setTimeout(() => { el.textContent = t; el.classList.remove('ok') }, 1800) };
+async function copyText(t) { try { await navigator.clipboard.writeText(t); return true } catch {} const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); const ok = document.execCommand('copy'); ta.remove(); return ok }
+async function copyBody() {
+  const el = document.getElementById('post');
+  try {
+    const item = new ClipboardItem({ 'text/html': new Blob([el.innerHTML], { type: 'text/html' }), 'text/plain': new Blob([el.innerText], { type: 'text/plain' }) });
+    await navigator.clipboard.write([item]); return true
+  } catch {}
+  const r = document.createRange(); r.selectNodeContents(el); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+  const ok = document.execCommand('copy'); sel.removeAllRanges(); return ok
+}
+document.getElementById('ct').onclick = async e => done(e.target, (await copyText(TITLE)) ? '제목 복사됨. 제목 칸에 붙여 넣기' : '복사 실패');
+document.getElementById('cb').onclick = async e => done(e.target, (await copyBody()) ? '본문 복사됨. 본문 칸에서 전체 선택 → 붙여 넣기' : '복사 실패');
+document.querySelectorAll('.tag').forEach(t => t.onclick = async () => done(t, (await copyText(t.dataset.t)) ? '복사됨' : '실패'));
+</script></body></html>`
 writeFileSync(out, page)
 console.log(`만들었어요: ${out}`)
 if (title) console.log(`제목(제목 칸에 따로 넣기): ${title}`)
@@ -143,7 +173,7 @@ let copied = false
 if (!args.includes('--open')) {
   try { copied = process.platform === 'darwin' ? copyMac() : process.platform === 'win32' ? copyWin() : copyLinux() } catch { copied = false }
 }
-if (copied) { console.log('글을 복사했어요. 지피터스 글쓰기 화면에 붙여 넣으세요(Ctrl+V, 맥은 Cmd+V). 이미지는 따로 넣어야 해요.'); process.exit(0) }
+if (copied) console.log('본문을 클립보드에 넣었어요.')
 
 const url = pathToFileURL(out).href
 const cmd = process.platform === 'darwin' ? ['open', [url]]
@@ -153,7 +183,7 @@ try {
   const p = spawn(cmd[0], cmd[1], { stdio: 'ignore', detached: true })
   p.on('error', () => { console.error(`브라우저를 못 열었어요. 이 파일을 직접 더블클릭해서 열어 주세요: ${out}`); process.exit(2) })
   p.unref()
-  console.log('브라우저에 열었어요. 그 화면에서 전체 선택 → 복사 → 글쓰기 화면에 붙여 넣으세요.')
+  console.log('올리기 도우미 화면을 브라우저에 열었어요. 단추를 눌러 제목·본문을 복사해 붙여 넣으면 돼요.')
 } catch {
   console.error(`브라우저를 못 열었어요. 이 파일을 직접 더블클릭해서 열어 주세요: ${out}`); process.exit(2)
 }
