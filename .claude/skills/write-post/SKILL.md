@@ -305,19 +305,37 @@ python3 <skill>/scripts/check-ai-tell.py ./AI_CASE_STUDY.md
   ```
 - **올리는 방법**:
 
+발행메모를 만든 뒤 스킬이 먼저 `node <skill>/scripts/open-preview.mjs ./AI_CASE_STUDY.md`를 돌린다. 글이 서식 그대로 클립보드에 들어간다(안 되는 환경이면 브라우저로 열린다. node가 없으면 "AI_CASE_STUDY.md를 열어 전체 복사"로 안내). 그다음 아래 순서를 보여 준다.
+
 ```
-1. AI_CASE_STUDY.md 파일에서 마우스 우클릭 → "미리보기 열기" (Cmd+Shift+V, 윈도우는 Ctrl+Shift+V)
-2. 미리보기 화면에서 전체 선택(Cmd+A, Ctrl+A) → 복사
-3. 지피터스 글쓰기 화면에 붙여넣기
-4. 발행메모의 위치에 이미지 넣고, 대체 텍스트 칸에 alt 문장 넣기
-5. 태그 입력창에 "(study_tag)"를 쳐서 목록에서 고르기 ← 꼭! 그다음 도구명 태그
+1. 글쓰기 화면 열기: https://www.gpters.org/new?post_type=KLxSodedLeDUiTj
+2. 본문 칸에 붙여 넣기 (Ctrl+V, 맥은 Cmd+V). 방금 복사해 뒀어요.
+3. 제목 칸에 제목 넣기
+4. (이미지가 있을 때만) 발행메모에 적힌 자리에 이미지 넣기
+5. 태그 칸에 "(study_tag)" 치고 목록에서 고르기
 6. 게시
 ```
 
-올리는 방법의 5번에는 이번 글의 `study_tag`를 실제 이름으로 넣어 보여준다. "24기 GEO실험실"처럼.
+5번에는 이번 글의 `study_tag`를 실제 이름으로 넣는다. "24기 GEO실험실"처럼. 브라우저로 열린 경우 2번을 "열린 화면에서 전체 선택(Ctrl+A) → 복사(Ctrl+C) → 본문 칸에 붙여 넣기"로 바꾼다.
+
+**마무리 메시지.** 이 형태 그대로, 이보다 길게 쓰지 않는다. "봐 주실 것"은 **두 개까지**, 한 줄씩, 본문 인용은 20자 안, 왜 그렇게 썼는지는 설명하지 않는다. 없으면 그 부분을 뺀다.
+
+```
+다 됐어요. 글을 복사해 뒀어요.
+
+1. 글쓰기 화면 열기: (주소)
+2. 본문 칸에 붙여 넣기 (Ctrl+V, 맥은 Cmd+V)
+3. 제목 칸에 제목 넣기
+4. 태그 칸에 "24기 GEO실험실" 치고 고르기 → 게시
+
+봐 주실 것
+- 결과 부분에 "6편은 실패"라고 썼어요. 기억과 다르면 말씀해 주세요.
+
+자세한 건 발행메모.md에 있어요. 다음 글도 같은 명령으로 시작하면 돼요.
+```
 
 - 새 도구라면(②의 `site:gpters.org` 검색에서 그 도구 글이 3편 미만) "이 도구는 한국어 글이 아직 적어요. 오늘 올리면 먼저 잡을 수 있어요".
-- "다음 글은 같은 명령으로 시작하면 바로 기록 읽기로 가요"로 끝낸다.
+- 마무리 메시지는 위 형태로 끝낸다.
 
 ---
 
@@ -354,6 +372,7 @@ python3 <skill>/scripts/check-ai-tell.py ./AI_CASE_STUDY.md
 - `references/rules.md`: 링크·블러·숫자 공개 기준, 게이트 체크리스트, 베터모드 형식, 모바일 가독성
 - `references/post-templates.md`: 구성 4종. `references/voice-default.md`: 기본 문체와 AI 티 제거 규칙
 - `references/devlog-guide.md`: 스크립트 없이 세션을 직접 읽을 때(코덱스·제미나이 CLI·오픈코드·안티그래비티 포함)
+- `scripts/open-preview.mjs`: 초안을 서식 있는 HTML로 클립보드에 복사(안 되면 브라우저로 열기)
 - `scripts/gen-image.mjs`: AI 그림 한 장(제미나이). API 키는 `~/.gpters/write-post/keys.json`
 - `references/tpl-compare.html`, `tpl-two-roles.html`, `eli5-template.html`, `_diagram.css`: 카드 템플릿
 

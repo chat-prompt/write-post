@@ -58,6 +58,11 @@ jobs:
           if ($gate -notmatch "2,000") { throw "check-gate did not run length check" }
           python "$k\check-ai-tell.py" "$proj\AI_CASE_STUDY.md" | Out-Null
           "OK python gates run on windows (exit code $LASTEXITCODE)"
+          node "$k\open-preview.mjs" "$proj\AI_CASE_STUDY.md" --out "$proj\AI_CASE_STUDY.html" | Out-String | Tee-Object -Variable prev | Out-Null
+          if ($LASTEXITCODE -gt 2) { throw "open-preview failed: $prev" }
+          if (-not (Test-Path "$proj\AI_CASE_STUDY.html")) { throw "open-preview made no html" }
+          if ((Get-Content "$proj\AI_CASE_STUDY.html" -Raw -Encoding UTF8) -notmatch "<h2>") { throw "open-preview html has no h2" }
+          "OK open-preview on windows (exit $LASTEXITCODE): $prev"
       - name: install (global, claude+codex)
         shell: powershell
         run: |
@@ -156,6 +161,11 @@ jobs:
           if ($gate -notmatch "2,000") { throw "check-gate did not run length check" }
           python "$k\check-ai-tell.py" "$proj\AI_CASE_STUDY.md" | Out-Null
           "OK python gates run on windows (exit code $LASTEXITCODE)"
+          node "$k\open-preview.mjs" "$proj\AI_CASE_STUDY.md" --out "$proj\AI_CASE_STUDY.html" | Out-String | Tee-Object -Variable prev | Out-Null
+          if ($LASTEXITCODE -gt 2) { throw "open-preview failed: $prev" }
+          if (-not (Test-Path "$proj\AI_CASE_STUDY.html")) { throw "open-preview made no html" }
+          if ((Get-Content "$proj\AI_CASE_STUDY.html" -Raw -Encoding UTF8) -notmatch "<h2>") { throw "open-preview html has no h2" }
+          "OK open-preview on windows (exit $LASTEXITCODE): $prev"
       - name: install (global, claude+codex)
         shell: pwsh
         run: |
