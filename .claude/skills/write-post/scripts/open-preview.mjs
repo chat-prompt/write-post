@@ -86,7 +86,9 @@ const tmp = path.join(os.tmpdir(), `write-post-clip-${process.pid}`)
 
 function copyMac() {
   const hex = Buffer.from(fragment, 'utf8').toString('hex')
-  const scpt = `set the clipboard to «data HTML${hex}»`
+  // HTML만 넣으면 글자만 받는 칸에는 아무것도 안 붙는다. 글자 형식(마크다운 원문)도 같이 넣는다.
+  const plain = md.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+  const scpt = `set the clipboard to {«class HTML»:«data HTML${hex}», «class utf8»:"${plain}"}`
   writeFileSync(tmp + '.scpt', scpt)
   const r = spawnSync('osascript', [tmp + '.scpt'], { stdio: 'ignore' })
   return r.status === 0
