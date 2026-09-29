@@ -1,4 +1,4 @@
-# write-post installer for Windows PowerShell
+﻿# write-post installer for Windows PowerShell
 
 # UTF-8 encoding for Korean text display
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -26,7 +26,9 @@ $SkillFiles = @(
     "scripts/check-ai-tell.py",
     "scripts/blur-region.py",
     "scripts/capture-card.mjs",
-    "scripts/preview-mobile.mjs"
+    "scripts/preview-mobile.mjs",
+    "scripts/open-preview.mjs",
+    "scripts/gen-image.mjs"
 )
 
 # Tool selection menu

@@ -24,6 +24,8 @@ SKILL_FILES=(
     "scripts/blur-region.py"
     "scripts/capture-card.mjs"
     "scripts/preview-mobile.mjs"
+    "scripts/open-preview.mjs"
+    "scripts/gen-image.mjs"
 )
 
 # 무입력 설치: install_mac.sh [claude|codex|gemini|opencode|antigravity|all, 쉼표 구분] [global|project]
