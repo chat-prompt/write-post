@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // 초안(.md)을 서식 있는 HTML로 바꿔 **클립보드에 복사**한다. 멤버는 지피터스 글쓰기 화면에 붙여 넣기만 하면 제목·목록·굵게·코드가 살아서 들어간다.
 // 클립보드에 못 넣는 환경이면 HTML 파일을 브라우저로 열어 준다(거기서 전체 선택 → 복사).
-//   node open-preview.mjs AI_CASE_STUDY.md --tags "24기 GEO실험실,클로드 코드"   # 올리기 도우미 화면을 브라우저로 열고, 본문도 클립보드에 넣는다
+//   node open-preview.mjs AI_CASE_STUDY.md --tags "24기 GEO실험실,클로드 코드"   # 올리기 도우미 화면을 브라우저로 연다 (클립보드는 건드리지 않는다)
+//   node open-preview.mjs AI_CASE_STUDY.md --copy    # 본문을 클립보드에도 넣는다 (멤버가 직접 부탁했을 때만. 멤버가 다른 일을 하는 동안 덮인다)
 //   node open-preview.mjs AI_CASE_STUDY.md --open     # 브라우저로만 연다
 //   node open-preview.mjs AI_CASE_STUDY.md --no-open  # HTML 파일만 만든다
 //   node open-preview.mjs AI_CASE_STUDY.md --title    # 제목만 글자로 복사한다(제목 칸용)
@@ -170,7 +171,7 @@ function copyLinux() {
 }
 
 let copied = false
-if (!args.includes('--open')) {
+if (args.includes('--copy')) {
   try { copied = process.platform === 'darwin' ? copyMac() : process.platform === 'win32' ? copyWin() : copyLinux() } catch { copied = false }
 }
 if (copied) console.log('본문을 클립보드에 넣었어요.')
