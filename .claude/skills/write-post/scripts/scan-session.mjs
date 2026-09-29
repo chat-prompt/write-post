@@ -349,18 +349,22 @@ const remaining = [
   ...users.filter(u => /(나중에|일단 빼|일단 넘어|다음에|보류|미루)/.test(u.text)).map(u => u.text),
   ...(ais.slice(-3).map(a => a.text).join('\n').match(/[^\n]*(아직|남은|남아|다음 단계|미완|TODO|해야|내일|확인은|확인이 안|못 (?:했|읽|봤)|안 됐|안 되)[^\n]*/g) || []).slice(0, 6),
 ]
+// 긴 붙여넣기(문서 통째로 등)가 있으면 DEVLOG와 materials.json이 수백 KB가 된다. 최저 요금제 멤버의 토큰 창을 아끼려고
+// 여기서는 앞부분만 남기고, 전문은 materials-full.json에 둔다.
+const CAP = 1200
+const cut = (t, n = CAP) => (t && t.length > n) ? t.slice(0, n) + `\n(뒤로 ${t.length - n}자 더. 전문은 materials-full.json)` : t
 const materials = {
   source: paste ? 'paste' : sources.join('+'), files: files.map(f => basename(f)), cwd,
   date: firstT ? localDate(firstT) : null,
-  first_request: firstReq ? firstReq.text : null,
-  user_messages: users.map(u => u.text),
-  stuck_moments: stuck.slice(0, 8),
+  first_request: firstReq ? cut(firstReq.text, 1500) : null,
+  user_messages: users.map(u => cut(u.text, 600)),
+  stuck_moments: stuck.slice(0, 8).map(m => ({ ...m, text: cut(m.text, 800), next_user: cut(m.next_user, 300) })),
   numbers: { files_written: written.size, files_edited: edited.size, commands: cmds.length, tool_errors: errorsN, questions_asked: asks.length, commits, deploys },
   time: { work_min: workMin, active_min: activeMin, first: firstT, last: lastT, note: paste ? '붙여 넣은 대화에는 시각이 없어요. 날짜와 걸린 시간은 멤버에게 묻는다.' : null },
   models, output_tokens: outTokens || null, cost: null,
   results: { files: [...written].filter(p => !/\/\.claude\//.test(p)).map(p => basename(p)).slice(0, 20), mentioned: [...mentioned].slice(0, 12), urls: [...urls].slice(0, 20) },
   time_blocks: blocks.map(b => ({ start: b.start, end: b.end, min: b.min })),
-  remaining: remaining.slice(0, 8),
+  remaining: remaining.slice(0, 8).map(r => cut(r, 200)),
   resources_opened: [...opened].filter(u => !/gpters\.org|localhost|127\.0\.0\.1/.test(u)).slice(0, 10),
   truncated_requests: truncatedFrom || 0,
   windowed_out_turns: windowed || 0,
@@ -378,7 +382,7 @@ for (let i = 0; i < turns.length; i++) {
   const x = turns[i]
   if (x.who !== 'user' || !x.text) continue
   n++
-  L.push(`### ${n}. ${x.text.split('\n')[0].slice(0, 40)}${x.queued ? ' (작업 중에 이어 보낸 말)' : ''}`, '', `> ${fmt(x.t)}`, '', '```', x.text, '```', '')
+  L.push(`### ${n}. ${x.text.split('\n')[0].slice(0, 40)}${x.queued ? ' (작업 중에 이어 보낸 말)' : ''}`, '', `> ${fmt(x.t)}`, '', '```', cut(x.text, x === firstReq ? 1500 : CAP), '```', '')
   if (x.answers && x.answers.length) L.push(`- 질문에 답함: ${x.answers[0].slice(0, 600)}`)
   // 다음 사용자 메시지 전까지 AI가 한 일
   const acts = []
@@ -393,9 +397,9 @@ for (let i = 0; i < turns.length; i++) {
       else if (tl.name === 'AskUserQuestion') acts.push(`질문: ${(tl.q || []).join(' / ').slice(0, 160)}`)
       else if (tl.url) acts.push(`열어 봄: ${tl.url}`)
     }
-    if (a.text) acts.push(`AI: ${a.text.replace(/\s+/g, ' ').slice(0, 600)}`)
+    if (a.text) acts.push(`AI: ${a.text.replace(/\s+/g, ' ').slice(0, 400)}`)
   }
-  const uniq = [...new Set(acts)].slice(0, 14)
+  const uniq = [...new Set(acts)].slice(0, 10)
   if (uniq.length) L.push(...uniq.map(s => `- ${s}`), '')
 }
 L.push('## 소요 시간', '', workMin != null ? `- 작업 시간(30분 넘게 쉰 구간 제외): ${workMin}분` : '- 시각 정보 없음 (붙여 넣은 대화). 날짜와 걸린 시간은 멤버에게 묻는다.')
@@ -410,5 +414,7 @@ L.push(`- 아직 안 된 것: ${materials.remaining.map(r => r.replace(/\s+/g, '
 L.push(`- 세션에서 연 자료: ${materials.resources_opened.join(' ') || '없음'}`, '')
 writeFileSync(outMd, L.join('\n'))
 writeFileSync(outJson, JSON.stringify(materials, null, 2))
+const outFull = outJson.replace(/\.json$/, '-full.json')
+writeFileSync(outFull, JSON.stringify({ first_request: firstReq ? firstReq.text : null, user_messages: users.map(u => u.text), stuck_moments: stuck.slice(0, 8) }, null, 2))
 console.log(`✓ ${outMd} (요청 ${users.length}개, 막힌 순간 ${stuck.length}개, ${workMin != null ? '작업 ' + workMin + '분' : '시각 없음'}) · ${outJson}`)
 if (paste) console.log('붙여 넣은 대화라 날짜·걸린 시간·모델은 비어 있어요. ②에서 묻는다.')
