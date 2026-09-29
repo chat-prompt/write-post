@@ -4,6 +4,8 @@
 //   node open-preview.mjs AI_CASE_STUDY.md            # 클립보드에 복사 (안 되면 브라우저로 염)
 //   node open-preview.mjs AI_CASE_STUDY.md --open     # 브라우저로만 연다
 //   node open-preview.mjs AI_CASE_STUDY.md --no-open  # HTML 파일만 만든다
+//   node open-preview.mjs AI_CASE_STUDY.md --title    # 제목만 글자로 복사한다(제목 칸용)
+// 첫 줄의 # 제목은 본문에서 뺀다. 글쓰기 화면은 제목 칸이 따로 있어서 본문에 넣으면 제목이 두 번 보인다.
 // 외부 패키지·네트워크 없이 돌아간다. 종료 코드: 0 성공 / 1 인자 오류 / 2 복사도 열기도 실패(파일은 만들어짐)
 import { readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
@@ -20,6 +22,18 @@ const dir = path.dirname(path.resolve(src))
 
 let md = readFileSync(src, 'utf8').replace(/\r\n/g, '\n')
 if (md.startsWith('---')) { const end = md.indexOf('\n---', 3); if (end > 0) md = md.slice(end + 4) }
+const tm = md.match(/^\s*#\s+(.+?)\s*$/m)
+const title = tm ? tm[1].trim() : ''
+if (tm) md = md.replace(tm[0], '').replace(/^\s*\n/, '')
+
+if (args.includes('--title')) {
+  if (!title) { console.error('첫 줄에 # 제목이 없어요.'); process.exit(1) }
+  const r = process.platform === 'darwin' ? spawnSync('pbcopy', [], { input: title })
+    : process.platform === 'win32' ? spawnSync('powershell', ['-NoProfile', '-Command', 'Set-Clipboard -Value ([Console]::In.ReadToEnd())'], { input: title })
+    : spawnSync('xclip', ['-selection', 'clipboard'], { input: title })
+  if (r.status === 0) console.log(`제목을 복사했어요: ${title}`); else console.log(`제목: ${title}`)
+  process.exit(0)
+}
 
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 const imgSrc = u => /^(https?:|data:|\/)/.test(u) ? u : pathToFileURL(path.resolve(dir, u)).href
@@ -77,6 +91,7 @@ ${html.join('\n')}
 </article></body></html>`
 writeFileSync(out, page)
 console.log(`만들었어요: ${out}`)
+if (title) console.log(`제목(제목 칸에 따로 넣기): ${title}`)
 
 if (args.includes('--no-open')) process.exit(0)
 
