@@ -28,7 +28,8 @@ $SkillFiles = @(
     "scripts/capture-card.mjs",
     "scripts/preview-mobile.mjs",
     "scripts/open-preview.mjs",
-    "scripts/gen-image.mjs"
+    "scripts/gen-image.mjs",
+    "scripts/capture-url.mjs"
 )
 
 # Tool selection menu
