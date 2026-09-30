@@ -31,7 +31,10 @@ try {
   if (res.ok) remote = (await res.text()).trim()
 } catch {}
 if (!remote) { console.log('새 버전 확인을 못 했어요(인터넷 연결). 그냥 진행해요.'); process.exit(0) }
-if (remote === local) { console.log(`최신이에요 (${local}).`); process.exit(0) }
+// 버전은 "2026-09-30.2" 꼴. 캐시 때문에 원격이 옛 값으로 올 수 있으니, 원격이 더 새것일 때만 알린다.
+const key = v => (v.match(/\d+/g) || []).map(Number)
+const newer = (a, b) => { const x = key(a), y = key(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d > 0 } return false }
+if (!newer(remote, local)) { console.log(`최신이에요 (${local}).`); process.exit(0) }
 console.log(`새 버전이 있어요: 지금 ${local} → 최신 ${remote}`)
 console.log('다시 설치하는 명령:')
 console.log(cmdFor())
