@@ -11,7 +11,12 @@ const root = path.resolve(here, '..')
 const read = f => { try { return readFileSync(path.join(root, f), 'utf8').trim() } catch { return null } }
 const local = read('VERSION')
 let info = null
-try { info = JSON.parse(read('install.json') || 'null') } catch {}
+const raw = read('install.json') || ''
+try { info = JSON.parse(raw || 'null') } catch {}
+if (!info && raw) {  // 예전 설치본의 깨진 JSON(["claude"codex"])도 읽는다
+  const m = raw.match(/"repo_url"\s*:\s*"([^"]+)"/)
+  if (m) info = { repo_url: m[1], tools: [...raw.matchAll(/\b(claude|codex|gemini|opencode|antigravity)\b/g)].map(x => x[1]).filter((v, i, a) => a.indexOf(v) === i), scope: (raw.match(/"scope"\s*:\s*"([^"]+)"/) || [])[1] || 'global' }
+}
 if (!local || !info || !info.repo_url) { console.log('설치 정보가 없어서 새 버전 확인을 건너뛰어요.'); process.exit(0) }
 
 const cmdFor = () => {
