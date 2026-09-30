@@ -37,7 +37,21 @@ if (args.includes('--title')) {
 }
 
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-const imgSrc = u => /^(https?:|data:|\/)/.test(u) ? u : pathToFileURL(path.resolve(dir, u)).href
+const MIME = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp' }
+let embedded = 0, skipped = []
+const imgSrc = u => {
+  if (/^(https?:|data:)/.test(u)) return u
+  // 로컬 이미지는 데이터로 심는다. 지피터스 편집기에 붙여 넣으면 그림을 서버에 올려 주고 alt도 남는다(2026-09-30 확인).
+  const f = path.resolve(dir, decodeURIComponent(u))
+  try {
+    const ext = path.extname(f).slice(1).toLowerCase()
+    if (!MIME[ext]) throw new Error('type')
+    const buf = readFileSync(f)
+    if (buf.length > 8 * 1024 * 1024) throw new Error('big')
+    embedded++
+    return `data:${MIME[ext]};base64,${buf.toString('base64')}`
+  } catch { skipped.push(u); return pathToFileURL(f).href }
+}
 const inline = s => esc(s)
   .replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_, alt, u) => `<img src="${imgSrc(u)}" alt="${alt}">`)
   .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2">$1</a>')
@@ -95,32 +109,39 @@ const page = `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta n
 <div class="bar">
  <b>올리기 순서. 단추를 누르면 복사돼요. 글쓰기 화면에 붙여 넣기만 하세요.</b>
  <div class="row"><a class="btn" href="https://www.gpters.org/new?post_type=KLxSodedLeDUiTj" target="_blank">① 글쓰기 화면 열기</a>
- <button id="ct">② 제목 복사</button> <button id="cb">③ 본문 복사 (본문 칸에서 전체 선택 → 붙여 넣기)</button></div>
+ <button id="ct">② 제목 복사</button> <button id="cb">③ 본문 복사 (본문 칸에서 전체 선택 → 붙여 넣기. 그림도 같이 들어가요)</button></div>
  ${tags.length ? `<div class="row">④ 태그 칸에 하나씩 치고 목록에서 고르기: ${tags.map(t => `<span class="tag" data-t="${esc(t)}">${esc(t)}</span>`).join(' ')} <small>(누르면 복사)</small></div>` : ''}
- <div class="row"><small>${tags.length ? '⑤' : '④'} 이미지가 있으면 본문의 ▲ 줄 바로 위에 넣기 → 게시</small></div>
+ <div class="row"><small>${tags.length ? '⑤' : '④'} 붙여 넣은 뒤 그림이 다 보이는지 확인 → 게시${skipped.length ? ` (못 심은 그림 ${skipped.length}개는 ▲ 줄 위에 직접 넣어 주세요)` : ''}</small></div>
 </div>
 <article class="post" id="post">
 ${html.join('\n')}
 </article>
 <script>
 const TITLE = ${j(title)};
+const CLEAN_HTML = ${j(html.join('\n'))};
 const done = (el, msg) => { const t = el.textContent; el.textContent = msg; el.classList.add('ok'); setTimeout(() => { el.textContent = t; el.classList.remove('ok') }, 1800) };
 async function copyText(t) { try { await navigator.clipboard.writeText(t); return true } catch {} const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); const ok = document.execCommand('copy'); ta.remove(); return ok }
 async function copyBody() {
   const el = document.getElementById('post');
-  try {
-    const item = new ClipboardItem({ 'text/html': new Blob([el.innerHTML], { type: 'text/html' }), 'text/plain': new Blob([el.innerText], { type: 'text/plain' }) });
-    await navigator.clipboard.write([item]); return true
-  } catch {}
+  // copy 이벤트에서 깨끗한 HTML(서식 속성 없음, 그림은 data로)을 직접 넣는다.
+  // 선택 복사를 그대로 두면 크롬이 글자 크기 같은 스타일을 붙여서 게시판이 문단을 소제목으로 오해하고 그림을 버린다(2026-09-30 확인).
+  const onCopy = e => { e.clipboardData.setData('text/html', CLEAN_HTML); e.clipboardData.setData('text/plain', el.innerText); e.preventDefault() };
+  document.addEventListener('copy', onCopy, { once: true });
   const r = document.createRange(); r.selectNodeContents(el); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
-  const ok = document.execCommand('copy'); sel.removeAllRanges(); return ok
+  let ok = false; try { ok = document.execCommand('copy') } catch {}
+  sel.removeAllRanges(); document.removeEventListener('copy', onCopy);
+  if (ok) return true
+  try {
+    const item = new ClipboardItem({ 'text/html': new Blob([CLEAN_HTML], { type: 'text/html' }), 'text/plain': new Blob([el.innerText], { type: 'text/plain' }) });
+    await navigator.clipboard.write([item]); return true
+  } catch { return false }
 }
 document.getElementById('ct').onclick = async e => done(e.target, (await copyText(TITLE)) ? '제목 복사됨. 제목 칸에 붙여 넣기' : '복사 실패');
 document.getElementById('cb').onclick = async e => done(e.target, (await copyBody()) ? '본문 복사됨. 본문 칸에서 전체 선택 → 붙여 넣기' : '복사 실패');
 document.querySelectorAll('.tag').forEach(t => t.onclick = async () => done(t, (await copyText(t.dataset.t)) ? '복사됨' : '실패'));
 </script></body></html>`
 writeFileSync(out, page)
-console.log(`만들었어요: ${out}`)
+console.log(`만들었어요: ${out}${embedded ? ` (그림 ${embedded}장 심음)` : ''}${skipped.length ? ` (못 심은 그림: ${skipped.join(', ')})` : ''}`)
 if (title) console.log(`제목(제목 칸에 따로 넣기): ${title}`)
 
 if (args.includes('--no-open')) process.exit(0)
