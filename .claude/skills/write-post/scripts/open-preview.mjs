@@ -97,7 +97,7 @@ const page = `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta n
  <div class="row"><a class="btn" href="https://www.gpters.org/new?post_type=KLxSodedLeDUiTj" target="_blank">① 글쓰기 화면 열기</a>
  <button id="ct">② 제목 복사</button> <button id="cb">③ 본문 복사 (본문 칸에서 전체 선택 → 붙여 넣기)</button></div>
  ${tags.length ? `<div class="row">④ 태그 칸에 하나씩 치고 목록에서 고르기: ${tags.map(t => `<span class="tag" data-t="${esc(t)}">${esc(t)}</span>`).join(' ')} <small>(누르면 복사)</small></div>` : ''}
- <div class="row"><small>${tags.length ? '⑤' : '④'} 이미지가 있으면 자리에 넣고, 이미지를 눌러 "대체 텍스트" 칸에 설명 한 줄 → 게시</small></div>
+ <div class="row"><small>${tags.length ? '⑤' : '④'} 이미지가 있으면 본문의 ▲ 줄 바로 위에 넣기 → 게시</small></div>
 </div>
 <article class="post" id="post">
 ${html.join('\n')}
