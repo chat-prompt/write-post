@@ -78,6 +78,17 @@ def main():
         check("첫 150자에 검색어", a.keyword in lead, "메타 설명 구간")
     if a.keyword_en:
         check("한영 병기(영문 표기 존재)", a.keyword_en.lower() in body.lower(), a.keyword_en)
+    if a.keyword:
+        # 같은 이름을 "오픈 AI"와 "오픈AI"처럼 둘로 쓰면 검색이 갈린다. 제목·본문에서 표기가 하나인지 본다.
+        k = a.keyword.strip()
+        variants = {k, k.replace(" ", ""), re.sub(r"([가-힣])([A-Za-z])", r"\1 \2", k), re.sub(r"([A-Za-z])([가-힣])", r"\1 \2", k)}
+        whole = title + "\n" + body
+        found = {v: len(re.findall(re.escape(v), whole)) for v in variants if v}
+        present = {v: c for v, c in found.items() if c}
+        if len(present) > 1:
+            # 긴 표기 안에 짧은 표기가 포함돼 겹쳐 세는 경우("오픈 AI" 안에는 "오픈AI"가 없으니 보통은 안 겹친다)
+            desc = ", ".join(f"'{v}' {c}번" for v, c in sorted(present.items(), key=lambda x: -x[1]))
+            warn("표기 통일", False, f"같은 이름이 두 가지로 적혀 있어요: {desc}. 검색은 한 표기로 잡히니 하나로 맞춰 주세요")
     # 3 확인일
     check("확인일·발행일이 본문 안에", bool(re.search(r"20\d\d년\s*\d{1,2}월\s*\d{1,2}일|20\d\d[.-]\d{1,2}[.-]\d{1,2}", body)), "'2026년 9월 23일 기준' 같은 절대 날짜")
     # 4 작성자 신호: 이름이 있고, 앞 200자 안에는 없어야
@@ -120,6 +131,8 @@ def main():
     warn("글 길이 목표", nchar >= 2500, f"{nchar:,}자예요. 3,000자쯤이면 검색에 더 유리해요. 기록에 더 있으면 채워요")
     h2s = re.findall(r"^##\s+(.+)$", body, flags=re.M)
     warn("소제목 수", 5 <= len(h2s) <= 7, f"{len(h2s)}개예요. 5~7개가 읽기 좋아요")
+    long_h2 = [h for h in h2s if len(h.strip()) > 25]
+    warn("소제목 길이", not long_h2, f"25자 넘는 소제목 {len(long_h2)}개예요: {[h.strip()[:30] for h in long_h2[:2]]}. 폰에서 두 줄로 꺾이니 한 토막으로 줄여 주세요")
     if a.keyword:
         kw_h2 = [h for h in h2s if a.keyword in h or (a.keyword_en and a.keyword_en.lower() in h.lower())]
         warn("소제목에 도구 이름", len(kw_h2) >= 2, f"도구 이름이 든 소제목이 {len(kw_h2)}개예요. 두 개쯤 있으면 검색에 좋아요")
