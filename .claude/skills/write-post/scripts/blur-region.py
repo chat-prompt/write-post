@@ -91,7 +91,7 @@ def main():
     except ImportError:
         exe = shutil.which("magick") or shutil.which("convert")
         if not exe:
-            print("Pillow도 ImageMagick도 없습니다. 둘 중 하나를 설치하세요:\n  pip3 install pillow\n  brew install imagemagick", file=sys.stderr)
+            print("Pillow도 ImageMagick도 없습니다. 둘 중 하나를 설치하세요:\n  윈도우: pip install pillow\n  맥: pip3 install pillow (또는 brew install imagemagick)", file=sys.stderr)
             sys.exit(2)
         try:
             used = with_magick(a)

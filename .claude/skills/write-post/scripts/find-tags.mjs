@@ -15,7 +15,9 @@ try { t = await gql(`query{ tokens(networkDomain:"${NETWORK}"){ accessToken } }`
 catch (e) { console.error(`게시판에 연결하지 못했어요(인터넷 또는 api.bettermode.com 문제): ${e.cause?.code || e.message}. 태그는 발행 화면의 입력창에서 직접 검색해 주세요.`); process.exit(3) }
 const token = t.tokens.accessToken
 for (const q of words) {
-  const d = await gql(`query($q:String!){ tags(limit:30, query:$q){ nodes { title slug } } }`, { q }, token)
+  let d
+  try { d = await gql(`query($q:String!){ tags(limit:30, query:$q){ nodes { title slug } } }`, { q }, token) }
+  catch (e) { console.error(`태그 검색이 안 됐어요(${e.cause?.code || e.message}). 태그는 발행 화면의 입력창에서 직접 검색해 주세요.`); process.exit(3) }
   // 문장처럼 긴 태그(멤버가 잘못 만든 것)는 뺀다. 검색어와 같은 표기가 있으면 맨 앞에.
   const names = d.tags.nodes.map(x => x.title.trim()).filter(n => n.length <= 30 && !/[.。!?]/.test(n))
   const lower = q.toLowerCase()

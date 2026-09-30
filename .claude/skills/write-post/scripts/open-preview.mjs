@@ -3,7 +3,6 @@
 // 클립보드에 못 넣는 환경이면 HTML 파일을 브라우저로 열어 준다(거기서 전체 선택 → 복사).
 //   node open-preview.mjs AI_CASE_STUDY.md --tags "24기 GEO실험실,클로드 코드"   # 올리기 도우미 화면을 브라우저로 연다 (클립보드는 건드리지 않는다)
 //   node open-preview.mjs AI_CASE_STUDY.md --copy    # 본문을 클립보드에도 넣는다 (멤버가 직접 부탁했을 때만. 멤버가 다른 일을 하는 동안 덮인다)
-//   node open-preview.mjs AI_CASE_STUDY.md --open     # 브라우저로만 연다
 //   node open-preview.mjs AI_CASE_STUDY.md --no-open  # HTML 파일만 만든다
 //   node open-preview.mjs AI_CASE_STUDY.md --title    # 제목만 글자로 복사한다(제목 칸용)
 // 첫 줄의 # 제목은 본문에서 뺀다. 글쓰기 화면은 제목 칸이 따로 있어서 본문에 넣으면 제목이 두 번 보인다.
@@ -98,7 +97,7 @@ const page = `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta n
  <div class="row"><a class="btn" href="https://www.gpters.org/new?post_type=KLxSodedLeDUiTj" target="_blank">① 글쓰기 화면 열기</a>
  <button id="ct">② 제목 복사</button> <button id="cb">③ 본문 복사 (본문 칸에서 전체 선택 → 붙여 넣기)</button></div>
  ${tags.length ? `<div class="row">④ 태그 칸에 하나씩 치고 목록에서 고르기: ${tags.map(t => `<span class="tag" data-t="${esc(t)}">${esc(t)}</span>`).join(' ')} <small>(누르면 복사)</small></div>` : ''}
- <div class="row"><small>⑤ 이미지는 발행메모에 적힌 자리에 넣고 → 게시</small></div>
+ <div class="row"><small>${tags.length ? '⑤' : '④'} 이미지가 있으면 넣고 → 게시</small></div>
 </div>
 <article class="post" id="post">
 ${html.join('\n')}

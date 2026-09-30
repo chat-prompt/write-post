@@ -31,7 +31,7 @@ def main():
     except Exception: pass
     ap = argparse.ArgumentParser()
     ap.add_argument("src"); ap.add_argument("--keyword", default=""); ap.add_argument("--keyword-en", default="")
-    ap.add_argument("--author", default=""); ap.add_argument("--images", default="")
+    ap.add_argument("--author", default="")
     a = ap.parse_args()
     raw = open(a.src, encoding="utf-8").read()
     parts = raw.split("---", 2)
