@@ -73,7 +73,6 @@ function readClaudeCode() {
       const exact = scwd === me
       if (!exact && !me.startsWith(scwd + SEP)) continue
       const head = readFileSync(full, 'utf8')
-      if (/처음이라 세 가지만 여쭐게요|기록에서 이렇게 찾았어요|스터디 태그를 번호로 골라 주세요/.test(head)) continue  // 이 스킬 자신이 돌던 세션은 글감이 아니다
       if (!exact && !head.includes(cwd) && !head.includes(cwdArg) && !head.includes(CWD_BASE)) continue  // 이 폴더 얘기가 없는 상위 세션은 통째로 제외
       files.push({ f: full, exact })
     }
@@ -123,7 +122,14 @@ function readClaudeCode() {
         fileTurns.push({ t, who: 'ai', text: text.trim(), tools, errors: [], model: m.model || null, out_tokens: (m.usage || {}).output_tokens || 0, src: f })
       }
     }
-    const kept = exact ? fileTurns : keepRelevantBlocks(fileTurns)
+    // 이 스킬이 돌기 시작한 지점부터는 글감이 아니다. 같은 창에서 과제를 하고 이어서 스킬을 돌린 경우가 많아서
+    // 세션을 통째로 빼지 않고, 스킬이 시작된 첫 턴 앞까지만 남긴다. 설치("이 스킬 설치해 줘")는 자르는 기준이 아니다(설치 뒤에 과제를 할 수도 있다).
+    const SKILL_USER = /^\/write-post\b|write-post 스킬|사례\s?글 써\s?줘|사례 게시글/
+    const SKILL_AI = /처음이라 세 가지만 여쭐게요|기록에서 이렇게 찾았어요|작업 기록을 읽고 있어요|이번 글은 어떤 스터디 과제예요|듣는 스터디를 골라 주세요|스터디 태그를 번호로 골라 주세요/
+    const cutAt = fileTurns.findIndex(x => (x.who === 'user' && SKILL_USER.test(x.text || '')) || (x.who === 'ai' && (SKILL_AI.test(x.text || '') || (x.tools || []).some(tl => /scan-session\.mjs|find-tags\.mjs/.test(tl.cmd || '')))))
+    const beforeSkill = cutAt >= 0 ? fileTurns.slice(0, cutAt) : fileTurns
+    if (!beforeSkill.some(x => x.who === 'user' && x.text)) continue  // 스킬 실행만 있던 세션
+    const kept = exact ? beforeSkill : keepRelevantBlocks(beforeSkill)
     if (kept.length) { turns.push(...kept); used.push(f) }
   }
   turns.sort((a, b) => (a.t?.getTime() || 0) - (b.t?.getTime() || 0))
