@@ -61,16 +61,18 @@ node <skill>/scripts/find-tags.mjs "24기"     # → 1. 24기 GEO실험실  2. 2
 
 선택창이면 이 확인은 보기 "네, 이대로" 하나만 두고 고칠 문장은 직접 적기로 받는다("고칠래요" 같은 빈 보기를 두면 답이 안 들어온다).
 
+닉네임이 "지피터스_○○"나 "지피터스 ○○"처럼 지피터스로 시작하면(운영진 계정) 글에는 "○○"만 쓴다. "지피터스 멤버 지피터스_강지인이에요"처럼 지피터스가 두 번 나오면 안 된다. 프로필의 `nickname`은 원래대로 저장하고 글에 쓰는 이름은 `display_name`에 따로 둔다. 확인 문장도 `display_name`으로 보여 준다: "지피터스 24기 ○○ 멤버 강지인이에요."
+
 소개 한 줄은 어미만 "~해요"로 다듬는다("제조업 회사 구매 담당 7년 차" → "제조업 회사에서 구매를 7년째 맡고 있어요", "동네에서 반찬가게 운영" → "동네에서 반찬가게를 하고 있어요"). 내용은 바꾸거나 보태지 않는다.
 
 저장한다. `voice.md`는 `references/voice-default.md`를 그대로 복사한 것이다(기본 말투: 어요체, 짧은 문단, 이모지 없이. 10대도 60대도 읽힌다). 문체 추출·말투 선택은 하지 않는다("요청할 때만" 참고).
 
 ```json
 // ~/.gpters/write-post/profile.json
-{ "nickname": "반찬엄마", "cohort": "24기", "study_tags": ["24기 GEO실험실", "24기 콘텐츠발행자동화"], "intro_line": "동네에서 반찬가게 운영", "intro_polished": "동네에서 반찬가게를 하고 있어요.", "tone": "default", "set_at": "2026-09-23" }
+{ "nickname": "반찬엄마", "display_name": "반찬엄마", "cohort": "24기", "study_tags": ["24기 GEO실험실", "24기 콘텐츠발행자동화"], "intro_line": "동네에서 반찬가게 운영", "intro_polished": "동네에서 반찬가게를 하고 있어요.", "tone": "default", "set_at": "2026-09-23" }
 ```
 
-`author_line`은 글마다 만든다: "지피터스 (이번 글의 스터디 태그) 멤버 (닉네임)예요. (intro_polished)". 스터디를 안 들으면 "지피터스 멤버 (닉네임)예요."로. 옛 프로필에 `cohort_tag`와 `author_line`만 있으면 `cohort_tag`를 `study_tags`의 첫 항목으로, `author_line`의 소개 부분을 `intro_polished`로 옮겨 쓴다.
+`author_line`은 글마다 만든다: "지피터스 (이번 글의 스터디 태그) 멤버 (display_name)예요. (intro_polished)". `display_name`이 없으면 `nickname`을 쓰되 "지피터스_" 앞머리는 뗀다. 스터디를 안 들으면 "지피터스 멤버 (닉네임)예요."로. 옛 프로필에 `cohort_tag`와 `author_line`만 있으면 `cohort_tag`를 `study_tags`의 첫 항목으로, `author_line`의 소개 부분을 `intro_polished`로 옮겨 쓴다.
 
 ```json
 // 옛 프로필 호환
