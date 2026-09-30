@@ -25,7 +25,7 @@ SKILL_FILES=(
     "scripts/blur-region.py"
     "scripts/capture-card.mjs"
     "scripts/preview-mobile.mjs"
-    "scripts/open-preview.mjs"
+    "scripts/copy-post.mjs"
     "scripts/gen-image.mjs"
     "scripts/capture-url.mjs"
     "scripts/check-update.mjs"
