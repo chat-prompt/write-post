@@ -5,6 +5,7 @@
 REPO_URL="${WRITE_POST_REPO_URL:-https://raw.githubusercontent.com/chat-prompt/write-post/main}"
 SKILL_FILES=(
     "SKILL.md"
+    "VERSION"
     "references/devlog-guide.md"
     "references/best-cases-185.md"
     "references/google-top300.md"
@@ -164,6 +165,8 @@ install_tool() {
         fi
     done
     
+    # 어디서 받았는지 남긴다. 스킬이 시작할 때 이걸 보고 새 버전을 알린다.
+    printf '{ "repo_url": "%s", "tools": ["%s"], "scope": "%s", "installed_at": "%s" }\n' "$REPO_URL" "$(IFS='","'; echo "${TOOLS_TO_INSTALL[*]}")" "$scope" "$(date +%Y-%m-%dT%H:%M:%S)" > "$target_dir/install.json"
     echo "✓ $label: $target_dir (${#SKILL_FILES[@]}개 파일)"
 }
 

@@ -8,6 +8,7 @@ $RepoUrl = if ($env:WRITE_POST_REPO_URL) { $env:WRITE_POST_REPO_URL } else { "ht
 # 무입력 설치: $env:WP_TOOLS = "claude,codex" (또는 all), $env:WP_SCOPE = "global"|"project". AI 에이전트가 대신 설치할 때 쓴다.
 $SkillFiles = @(
     "SKILL.md",
+    "VERSION",
     "references/devlog-guide.md",
     "references/best-cases-185.md",
     "references/google-top300.md",
@@ -146,6 +147,9 @@ function Install-Tool {
         }
     }
     
+    # 어디서 받았는지 남긴다. 스킬이 시작할 때 이걸 보고 새 버전을 알린다.
+    $rec = '{ "repo_url": "' + $RepoUrl + '", "tools": ["' + ($tools -join '","') + '"], "scope": "' + $Scope + '", "installed_at": "' + (Get-Date -Format "yyyy-MM-ddTHH:mm:ss") + '" }'
+    [IO.File]::WriteAllText((Join-Path $TargetDir "install.json"), $rec, (New-Object System.Text.UTF8Encoding $false))
     Write-Host "✓ $($paths.Label): $TargetDir ($($SkillFiles.Count)개 파일)" -ForegroundColor Green
 }
 

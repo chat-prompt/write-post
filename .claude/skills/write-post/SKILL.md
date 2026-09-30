@@ -83,7 +83,14 @@ node <skill>/scripts/find-tags.mjs "24기"     # → 1. 24기 GEO실험실  2. 2
 
 ## 매번: 시작 전 확인 (말없이)
 
-오늘 날짜를 명령으로 확인한다(추정 금지). node·python·웹 검색이 있는지 본다. **없어도 멈추지 않는다.** node가 없으면 파싱을 문서대로 직접 하고, python이 없으면 게이트를 체크리스트로 직접 보고, 검색이 없으면 제목 공식만 쓴다. 건너뛴 것은 발행메모에 적는다. Windows면 `python3` 대신 `python`.
+오늘 날짜를 명령으로 확인한다(추정 금지). node·python·웹 검색이 있는지 본다.
+
+**새 버전 확인.** node가 있으면 `node <skill>/scripts/check-update.mjs`를 돌린다(4초 안에 끝난다. 인터넷이 없으면 조용히 넘어간다). 종료 코드 10이면 멤버에게 한 번 묻는다.
+
+> 멤버에게: "스킬에 새 버전이 있어요. 지금 받을까요? 10초쯤 걸려요." 보기: 받을게요 / 다음에 할게요
+
+"받을게요"면 `node <skill>/scripts/check-update.mjs --command`가 출력한 설치 명령을 그대로 실행하고(맥은 bash, 윈도우는 PowerShell), 끝나면 "받았어요. 이 창을 껐다 켜고 다시 /write-post 라고 쳐 주세요"라고 하고 **여기서 멈춘다**(옛 스킬로 글을 쓰지 않는다). "다음에"면 그대로 진행하고 이번 대화에서는 다시 묻지 않는다.
+ **없어도 멈추지 않는다.** node가 없으면 파싱을 문서대로 직접 하고, python이 없으면 게이트를 체크리스트로 직접 보고, 검색이 없으면 제목 공식만 쓴다. 건너뛴 것은 발행메모에 적는다. Windows면 `python3` 대신 `python`.
 
 ---
 
@@ -354,6 +361,7 @@ python3 <skill>/scripts/check-ai-tell.py ./AI_CASE_STUDY.md
 
 - **"카드 만들어 줘"**: 전후 숫자 비교 카드. node + playwright가 있을 때. `references/tpl-compare.html`(숫자 둘 비교)·`tpl-two-roles.html`(둘로 나누기)을 복사해 숫자와 한 줄만 바꾸고 `node <skill>/scripts/capture-card.mjs ./case-post-images/card-1.html`. 도식(`.wrap`) 폭 520~560px, 글자 28px 이상, 한 장에 생각 하나. 만든 PNG는 열어서 본다.
 - **"폰으로 미리 보여 줘"**: `node <skill>/scripts/preview-mobile.mjs ./AI_CASE_STUDY.md --width 390`.
+- **"스킬 업데이트해 줘"**: 위 "새 버전 확인"과 같은 명령을 돌린다. 최신이면 "지금이 최신이에요(버전)"라고만 한다.
 - **"올리기 화면 열어 줘"**: `open-preview.mjs`를 같은 인자로 다시 돌려 브라우저에 연다. 여러 편이면 "1편 올리기 화면 열어 줘"처럼 받는다.
 - **"말투 바꿔 줘"**: `references/voice-default.md` 맨 끝 "분위기 문단" 1~4를 번호로 보여주고 고른 문단을 `voice.md` 끝에 붙인다. 프로필 `tone`에 번호를 적는다.
 - **"내 글로 문체 뽑아 줘"**: `node <skill>/scripts/fetch-member-posts.mjs "<닉네임>" --limit 30 --out ./my-posts.json`으로 공개 글을 읽고 종결어미 비율·문장 길이·자주 쓰는 표현·도입 방식을 뽑아 `voice.md`를 다시 만든다. 3편 미만이면 기본 문체로.
@@ -385,6 +393,7 @@ python3 <skill>/scripts/check-ai-tell.py ./AI_CASE_STUDY.md
 - `references/post-templates.md`: 구성 4종. `references/voice-default.md`: 기본 문체와 AI 티 제거 규칙
 - `references/devlog-guide.md`: 스크립트 없이 세션을 직접 읽을 때(코덱스·제미나이 CLI·오픈코드·안티그래비티 포함)
 - `scripts/open-preview.mjs`: 올리기 도우미 화면(제목·본문·태그 복사 단추)을 브라우저로 열기
+- `scripts/check-update.mjs`: 설치본이 최신인지 확인(VERSION·install.json 비교). 새 버전을 낼 때 `VERSION`을 올린다(CI가 안 올리면 막는다)
 - `scripts/capture-url.mjs`: 링크를 열어 화면 찍기(공개 페이지, playwright 필요)
 - `scripts/gen-image.mjs`: AI 그림 한 장(제미나이). API 키는 `~/.gpters/write-post/keys.json`
 - `references/tpl-compare.html`, `tpl-two-roles.html`, `eli5-template.html`, `_diagram.css`: 카드 템플릿

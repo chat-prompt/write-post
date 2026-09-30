@@ -219,6 +219,15 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 2 }
+      - name: VERSION must change when skill files change
+        run: |
+          if git rev-parse HEAD~1 >/dev/null 2>&1; then
+            changed=$(git diff --name-only HEAD~1 HEAD -- .claude/skills/write-post | grep -v '/VERSION$' || true)
+            vchanged=$(git diff --name-only HEAD~1 HEAD -- .claude/skills/write-post/VERSION || true)
+            if [ -n "$changed" ] && [ -z "$vchanged" ]; then echo "skill files changed but VERSION not bumped:"; echo "$changed"; exit 1; fi
+          fi
+          echo "VERSION: $(cat .claude/skills/write-post/VERSION)"
       - name: install (project, claude) and checks
         run: |
           export WRITE_POST_REPO_URL="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"

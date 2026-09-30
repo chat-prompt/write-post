@@ -40,7 +40,7 @@ iwr -useb https://raw.githubusercontent.com/chat-prompt/write-post/main/install_
 
 설치할 때 도구(Claude Code, OpenCode, Codex CLI, Gemini CLI, Antigravity)와 위치(전역 또는 현재 폴더)를 고릅니다. 예전 버전이 깔려 있어도 같은 명령으로 덮어쓰면 최신이 됩니다.
 
-설치 후에는 **쓰고 있는 AI 도구를 다시 시작**해야 스킬이 보입니다.
+설치 후에는 **쓰고 있는 AI 도구를 다시 시작**해야 스킬이 보입니다. 그 뒤로는 스킬이 시작할 때 새 버전이 있으면 "지금 받을까요?"라고 물어요. "스킬 업데이트해 줘"라고 해도 됩니다.
 
 ### AI 에이전트가 설치할 때 (사람은 안 읽어도 됩니다)
 
