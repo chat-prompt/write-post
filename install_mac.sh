@@ -28,6 +28,7 @@ SKILL_FILES=(
     "scripts/open-preview.mjs"
     "scripts/gen-image.mjs"
     "scripts/capture-url.mjs"
+    "scripts/check-update.mjs"
 )
 
 # 무입력 설치: install_mac.sh [claude|codex|gemini|opencode|antigravity|all, 쉼표 구분] [global|project]

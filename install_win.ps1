@@ -30,7 +30,8 @@ $SkillFiles = @(
     "scripts/preview-mobile.mjs",
     "scripts/open-preview.mjs",
     "scripts/gen-image.mjs",
-    "scripts/capture-url.mjs"
+    "scripts/capture-url.mjs",
+    "scripts/check-update.mjs"
 )
 
 # Tool selection menu
