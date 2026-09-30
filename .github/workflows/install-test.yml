@@ -73,7 +73,7 @@ jobs:
           $skill = "$env:USERPROFILE\.claude\skills\write-post"
           if (-not (Test-Path "$skill\SKILL.md")) { throw "SKILL.md missing" }
           $n = (Get-ChildItem -Recurse -File $skill).Count
-          if ($n -ne 20) { throw "file count is not 20: $n" }
+          if ($n -ne 26) { throw "file count is not 26: $n" }
           if (-not (Test-Path "$env:USERPROFILE\.codex\skills\write-post\SKILL.md")) { throw "codex not installed" }
           "OK: $n files"
       - name: reinstall keeps other files
@@ -176,7 +176,7 @@ jobs:
           $skill = "$env:USERPROFILE\.claude\skills\write-post"
           if (-not (Test-Path "$skill\SKILL.md")) { throw "SKILL.md missing" }
           $n = (Get-ChildItem -Recurse -File $skill).Count
-          if ($n -ne 20) { throw "file count is not 20: $n" }
+          if ($n -ne 26) { throw "file count is not 26: $n" }
           if (-not (Test-Path "$env:USERPROFILE\.codex\skills\write-post\SKILL.md")) { throw "codex not installed" }
           "OK: $n files"
       - name: reinstall keeps other files
@@ -234,7 +234,7 @@ jobs:
           mkdir -p /tmp/proj && cd /tmp/proj
           bash "$GITHUB_WORKSPACE/install_mac.sh" " Claude " Project </dev/null
           test -f .claude/skills/write-post/SKILL.md
-          [ "$(find .claude/skills/write-post -type f | wc -l)" -eq 20 ]
+          [ "$(find .claude/skills/write-post -type f | wc -l)" -eq 26 ]
           echo keep > .claude/skills/write-post/my-note.md
           bash "$GITHUB_WORKSPACE/install_mac.sh" claude project </dev/null
           test -f .claude/skills/write-post/my-note.md
