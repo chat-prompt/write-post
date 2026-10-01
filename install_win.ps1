@@ -21,6 +21,7 @@ $SkillFiles = @(
     "references/tpl-two-roles.html",
     "references/eli5-template.html",
     "scripts/fetch-member-posts.mjs",
+    "scripts/voice-profile.mjs",
     "scripts/find-tags.mjs",
     "scripts/scan-session.mjs",
     "scripts/check-gate.py",

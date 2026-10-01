@@ -65,7 +65,7 @@ node <skill>/scripts/find-tags.mjs "24기"     # → 1. 24기 GEO실험실  2. 2
 
 소개 한 줄은 어미만 "~해요"로 다듬는다("제조업 회사 구매 담당 7년 차" → "제조업 회사에서 구매를 7년째 맡고 있어요", "동네에서 반찬가게 운영" → "동네에서 반찬가게를 하고 있어요"). 내용은 바꾸거나 보태지 않는다.
 
-저장한다. `voice.md`는 `references/voice-default.md`를 그대로 복사한 것이다(기본 말투: 어요체, 짧은 문단, 이모지 없이. 10대도 60대도 읽힌다). 문체 추출·말투 선택은 하지 않는다("요청할 때만" 참고).
+저장한다. `voice.md`는 **말없이, 묻지 않고** 만든다(2026-10-01 지인 결정. 테스터 셋이 "AI 같다", "어색하다"고 한 원인이 모든 멤버 글이 기본 말투 하나로 나오는 것이었다). node가 있으면 `node <skill>/scripts/fetch-member-posts.mjs "<닉네임>" --limit 10 --out ./my-posts.json` → `node <skill>/scripts/voice-profile.mjs ./my-posts.json --out ~/.gpters/write-post/voice.md`(10초 안). 스크립트가 공개 글에서 **어미 비율·문장 길이·느낌표·괄호 숫자만** 재서 짧은 파일을 만든다. 말버릇·오타·유행어·이모지는 옮기지 않고, 이 스킬이 써 준 글은 뺀다. 공개 글이 3편 미만(종료 코드 3)이거나 node가 없거나 실패하면 `references/voice-default.md`를 복사한다. 결과를 멤버에게 보여 주거나 설명하지 않는다. 멤버가 원하면 "말투 바꿔 줘"("요청할 때만" 참고).
 
 ```json
 // ~/.gpters/write-post/profile.json
@@ -84,6 +84,8 @@ node <skill>/scripts/find-tags.mjs "24기"     # → 1. 24기 GEO실험실  2. 2
 ## 매번: 시작 전 확인 (말없이)
 
 오늘 날짜를 명령으로 확인한다(추정 금지). node·python·웹 검색이 있는지 본다. **없어도 멈추지 않는다.** node가 없으면 파싱을 문서대로 직접 하고, python이 없으면 게이트를 체크리스트로 직접 보고, 검색이 없으면 제목 공식만 쓴다. 건너뛴 것은 발행메모에 적는다. Windows면 `python3` 대신 `python`.
+
+**문체 파일 한 번 만들기(옛 프로필).** `~/.gpters/write-post/voice.md` 첫 줄이 `# 지피터스 기본 문체`이고 node가 있으면 처음 1회 설정의 문체 만들기 두 명령을 한 번 돌린다. 3편 미만이면 그대로 둔다. 말없이, 실패해도 조용히 넘어간다.
 
 **새 버전 확인.** node가 있으면 `node <skill>/scripts/check-update.mjs`를 돌린다(4초 안에 끝난다. 인터넷이 없으면 조용히 넘어간다). 종료 코드 10이면 멤버에게 한 번 묻는다.
 
@@ -379,7 +381,7 @@ python3 <skill>/scripts/check-ai-tell.py ./AI_CASE_STUDY.md
 - **"본문 복사해 줘"**: `copy-post.mjs ./AI_CASE_STUDY.md`. 끝나면 "복사했어요. 본문 칸에서 전체 선택 → 붙여 넣기"라고만 한다. 여러 편이면 "1편 본문 복사해 줘"처럼 받는다.
 - **"제목 복사해 줘"**: 같은 스크립트에 `--title`.
 - **"말투 바꿔 줘"**: `references/voice-default.md` 맨 끝 "분위기 문단" 1~4를 번호로 보여주고 고른 문단을 `voice.md` 끝에 붙인다. 프로필 `tone`에 번호를 적는다.
-- **"내 글로 문체 뽑아 줘"**: `node <skill>/scripts/fetch-member-posts.mjs "<닉네임>" --limit 30 --out ./my-posts.json`으로 공개 글을 읽고 종결어미 비율·문장 길이·자주 쓰는 표현·도입 방식을 뽑아 `voice.md`를 다시 만든다. 3편 미만이면 기본 문체로.
+- **"내 글로 문체 뽑아 줘"**: 처음 설정의 두 명령(`fetch-member-posts.mjs` → `voice-profile.mjs`)을 다시 돌린다. 스크립트가 만든 파일 그대로 쓰고 에이전트가 글을 읽어 말버릇을 덧붙이지 않는다. 3편 미만이면 기본 문체로.
 - **"프로필 다시 설정"**: 처음 1회 설정을 다시.
 - playwright·Pillow 설치를 먼저 권하지 않는다. 멤버가 원하면 `npm i -g playwright && npx playwright install chromium`, `pip install pillow`.
 
