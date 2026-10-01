@@ -234,7 +234,7 @@ jobs:
           mkdir -p /tmp/proj && cd /tmp/proj
           bash "$GITHUB_WORKSPACE/install_mac.sh" " Claude " Project </dev/null
           test -f .claude/skills/write-post/SKILL.md
-          [ "$(find .claude/skills/write-post -type f | wc -l)" -eq 26 ]
+          [ "$(find .claude/skills/write-post -type f | wc -l)" -eq 27 ]
           bash "$GITHUB_WORKSPACE/install_mac.sh" claude,codex project </dev/null
           node -e "const j=JSON.parse(require('fs').readFileSync('.claude/skills/write-post/install.json','utf8')); if(j.tools.length!==2) throw new Error('tools '+JSON.stringify(j.tools)); console.log('install.json ok', j.tools)"
           echo keep > .claude/skills/write-post/my-note.md
