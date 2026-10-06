@@ -20,6 +20,7 @@ SKILL_FILES=(
     "scripts/fetch-member-posts.mjs"
     "scripts/voice-profile.mjs"
     "scripts/find-tags.mjs"
+    "scripts/find-recent-titles.mjs"
     "scripts/scan-session.mjs"
     "scripts/check-gate.py"
     "scripts/check-ai-tell.py"
