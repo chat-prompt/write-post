@@ -2,7 +2,7 @@
 
 # write-post installer for Mac/Linux - Multi-tool support
 
-REPO_URL="${WRITE_POST_REPO_URL:-https://raw.githubusercontent.com/chat-prompt/write-post/v1.0.0}"
+REPO_URL="${WRITE_POST_REPO_URL:-https://raw.githubusercontent.com/chat-prompt/write-post/v1.0.1}"
 SKILL_FILES=(
     "SKILL.md"
     "VERSION"
@@ -28,7 +28,6 @@ SKILL_FILES=(
     "scripts/capture-card.mjs"
     "scripts/preview-mobile.mjs"
     "scripts/copy-post.mjs"
-    "scripts/gen-image.mjs"
     "scripts/capture-url.mjs"
     "scripts/check-update.mjs"
 )
@@ -160,6 +159,7 @@ install_tool() {
         echo "폴더를 만들 수 없어요(쓰기 권한 확인): $target_dir" >&2; exit 1
     fi
     for f in "${SKILL_FILES[@]}"; do rm -f "$target_dir/$f"; done
+    rm -f "$target_dir/scripts/gen-image.mjs" # 이전 버전의 API 키 사용 스크립트 제거
     
     for f in "${SKILL_FILES[@]}"; do
         if ! curl -fsSL "$REPO_URL/.claude/skills/write-post/$f" -o "$target_dir/$f"; then

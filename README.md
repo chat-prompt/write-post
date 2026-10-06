@@ -1,16 +1,16 @@
 # write-post
 
-내 AI 작업을 **사례글로 만들어 스터디 과제로 내는 스킬**이에요. AI와 과제한 기록을 읽어서 지피터스에 올릴 사례글을 써 주고, 그 글을 그대로 과제로 제출하면 돼요. 할 일은 질문 몇 개에 답하고 완성된 글을 붙여 넣는 것뿐이에요. 한 편에 10분쯤 걸려요.
+AI로 한 작업을 **사례글로 정리해 스터디 과제로 제출할 수 있게 해 주는 스킬**이에요. 작업한 AI 도구에서 바로 시작하면 대화와 결과물을 읽고 글의 재료를 모아 줘요. 몇 가지 확인 질문에 답한 뒤 완성된 사례글을 지피터스에 붙여 넣으면 돼요. 한 편에 10분쯤 걸려요.
 
 ## 이렇게 써요
 
-**1. 과제하던 AI 도구 창에 이 한 줄을 붙여 넣어요.**
+**1. 작업하던 AI 도구 창에 이 한 줄을 붙여 넣어요.**
 
 ```
 https://github.com/chat-prompt/write-post 이 스킬 설치해 줘
 ```
 
-클로드 코드, 코덱스, 제미나이 CLI 어디든 돼요. 설치가 끝나면 그 자리에서 바로 글쓰기가 시작돼요. 과제를 하던 바로 그 창에 붙여 넣는 게 가장 좋아요. 그 창의 작업 기록이 글 재료가 되거든요.
+클로드 코드, 코덱스, 제미나이 CLI 어디든 돼요. 설치가 끝나면 그 자리에서 바로 사례글 쓰기가 시작돼요. AI로 작업하던 창에 붙여 넣으면 그 기록을 글 재료로 쓸 수 있어요.
 
 **2. 질문에 답해요.**
 
@@ -30,7 +30,7 @@ https://github.com/chat-prompt/write-post 이 스킬 설치해 줘
 
 ## 무엇이 나와요
 
-- **글 본문**: 검색에서 찾히기 좋은 제목과 첫 문단, 실제로 AI에게 보낸 말, 막혔던 순간, 직접 잰 숫자, 결과물이 들어가요.
+- **사례글 본문**: 무엇을 했는지 바로 알 수 있는 제목, AI에게 보낸 말, 막혔던 순간, 결과물이 들어가요. 직접 잰 숫자가 있으면 함께 써요.
 - **올리기 안내**: 고를 태그, 캡처를 넣을 자리, 올리는 순서, 스터디에서 1분 발표할 때 쓸 5줄이 같이 나와요.
 - **작업 기록 정리**: 글 재료가 된 요청, 막힌 순간, 숫자, 결과물을 한 번에 모아 줘요.
 
@@ -46,16 +46,16 @@ https://github.com/chat-prompt/write-post 이 스킬 설치해 줘
 
 - **읽어요**: 지금 폴더의 AI 작업 기록(`~/.claude/projects`, `~/.codex/sessions` 등)에서 글 재료를 찾아요.
 - **만들어요**: 글 초안과 올리기 안내 파일을 지금 폴더에, 설정(닉네임·스터디)을 `~/.gpters/write-post`에 저장해요.
-- **밖으로 보내요**: 지피터스 공개 게시판 조회(태그·최근 글 제목), 새 버전 확인(GitHub). AI 그림을 고르면 그때만 구글에 그림 요청을 보내요. 그 밖에 작업 기록을 외부로 보내지 않아요.
+- **밖으로 보내요**: 지피터스 공개 게시판 조회(태그·최근 글 제목), 새 버전 확인(GitHub). AI 그림은 지금 쓰는 도구에 이미지 생성 기능이 있을 때만 그 도구로 만들어요. 그림을 만들 때 제목과 그림 설명이 그 도구에 전달될 수 있어요. 스킬이 별도 이미지 API로 작업 기록을 보내지는 않아요.
 - **개인정보는 발행 전에 직접 확인하세요.** 스킬이 폴더 경로·이메일·키·남의 이름을 가리고 로그인 전용 링크를 빼지만, 자동 점검은 완전하지 않아요. 초안과 캡처를 올리기 전에 꼭 눈으로 보세요.
 
 ## 자주 묻는 것
 
 **캡처를 못 찍었는데요?**
-못 찍어도 글은 나와요. 캡처 자리는 안내에 적어 두니 나중에 넣어도 되고, AI한테 그림을 그려 달라고 할 수도 있어요. AI 그림은 구글 API 키가 필요해요. 채팅창에 붙여 넣지 말고, 터미널의 가려진 입력으로 `GEMINI_API_KEY` 환경변수를 설정하세요(자세한 방법은 스킬이 안내해요).
+못 찍어도 글은 나와요. 캡처 자리는 안내에 적어 두니 나중에 넣어도 돼요. 지금 쓰는 AI 도구에 그림 생성 기능이 있으면 대표 그림 한 장을 만들 수도 있어요. 별도 API 키는 필요 없어요. 그 기능이 없으면 이미 구독 중인 AI 앱에서 직접 그림을 만들어 첨부하거나 이미지 없이 제출하면 돼요.
 
 **AI 그림은 돈이 드나요?**
-구글 API 키 발급은 무료예요. 그림은 한 장에 수십 원 정도 들 수 있는데, 구글 요금에 따라 달라져요(2026년 10월 기준). 정확한 요금은 구글 AI 스튜디오 가격 안내를 봐 주세요. 그림이 부담되면 안 써도 글은 나와요.
+별도 이미지 API 결제는 요청하지 않아요. 이미 쓰는 AI 도구나 앱의 이미지 생성 기능을 사용하므로 이용 가능 여부와 한도는 각 서비스의 요금제에 따라 달라요. 이미지 없이도 글을 낼 수 있어요.
 
 **글이 마음에 안 들면요?**
 그냥 말하면 돼요. "제목 다시", "더 짧게", "이 부분은 빼 줘"처럼요. 발행 전까지는 몇 번이든 고칠 수 있어요.
@@ -64,21 +64,21 @@ https://github.com/chat-prompt/write-post 이 스킬 설치해 줘
 "카드 만들어 줘"(전후 숫자 카드), "폰으로 미리 보여 줘", "내 글로 문체 뽑아 줘", "프로필 다시 설정", "스킬 업데이트해 줘"라고 하면 돼요.
 
 **새 버전이 나오면요?**
-시작할 때 새 버전이 있으면 무엇이 바뀌는지 보여 주고 "지금 받을까요?"라고 물어요. 설치 명령을 다시 붙여 넣어도 최신으로 바뀌어요.
+시작할 때 검증된 새 릴리스가 있으면 "지금 받을까요?"라고 물어요. 업데이트 안내를 따라 설치하면 그 릴리스로 바뀌어요. 아래 설치 명령을 다시 실행하면 같은 버전이 재설치돼요.
 
 **지우거나 되돌리려면요?**
-지우기는 설치한 스킬 폴더(`~/.claude/skills/write-post` 등)를 지우면 돼요. 되돌리기나 업데이트가 꼬이면 설치 명령을 다시 돌리면 최신으로 덮어써요. 이때 글 초안이나 다른 파일은 건드리지 않아요.
+지우기는 설치한 스킬 폴더(`~/.claude/skills/write-post` 등)를 지우면 돼요. 업데이트가 꼬이면 아래 설치 명령을 다시 실행해 현재 배포 버전으로 재설치하세요. 글 초안이나 다른 파일은 건드리지 않아요.
 
-## 글은 이렇게 써 줘요
+## 사례글은 이렇게 정리해요
 
-**검색에 걸리는 제목.** 도구 이름으로 시작하고, 무엇을 했는지 붙여요. 스터디 기간엔 한 주에 수백 편이 올라와서 "클로드 코드 사용법" 같은 넓은 제목은 서로 겹쳐 묻혀요.
+**무엇을 했는지 알 수 있는 제목.** 쓴 도구와 만든 결과물을 제목에 담아요.
 
 ```
 이렇게는 안 써요   드디어 해냈다! 나만의 첫 자동화 도전기
 이렇게 써요       클로드 코드로 네이버 부동산 시세 지도 만들기
 ```
 
-**첫 문단이 중요해요.** 첫 문단이 검색 결과에 보이는 설명문이 되고, 올린 뒤엔 못 바꿔요. 그래서 여기에 무엇을 했는지, 숫자 하나, 도구 이름, 날짜를 넣어요.
+**첫 문단부터 한 일을 말해요.** 무엇을 했고 어떤 결과가 나왔는지 먼저 쓰고, 직접 확인한 숫자와 날짜가 있으면 넣어요.
 
 **내 글로 보여요.** AI에게 친 말 원문, 막혔던 순간과 바꾼 한 마디, 직접 잰 숫자, 결과물 링크, 아직 안 된 것이 들어가요. 소제목도 "소개" 같은 틀 이름 대신 그 글의 내용으로 달아요.
 
@@ -89,13 +89,13 @@ https://github.com/chat-prompt/write-post 이 스킬 설치해 줘
 Mac / Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/chat-prompt/write-post/v1.0.0/install_mac.sh | bash
+curl -fsSL https://raw.githubusercontent.com/chat-prompt/write-post/v1.0.1/install_mac.sh | bash
 ```
 
 Windows (PowerShell)
 
 ```powershell
-iwr -useb https://raw.githubusercontent.com/chat-prompt/write-post/v1.0.0/install_win.ps1 | iex
+iwr -useb https://raw.githubusercontent.com/chat-prompt/write-post/v1.0.1/install_win.ps1 | iex
 ```
 
 설치할 때 어떤 AI 도구에 넣을지(Claude Code, OpenCode, Codex CLI, Gemini CLI, Antigravity)를 골라요. 설치 뒤 `/write-post` 명령은 AI 도구를 다시 켠 뒤부터 보여요. 다시 켜기 싫으면 그 창에 "write-post로 사례글 써 줘"라고 치면 바로 돼요.
@@ -112,13 +112,13 @@ iwr -useb https://raw.githubusercontent.com/chat-prompt/write-post/v1.0.0/instal
 
 ```bash
 # Mac / Linux. 도구: claude | codex | gemini | opencode | antigravity | all (쉼표로 여러 개)
-curl -fsSL https://raw.githubusercontent.com/chat-prompt/write-post/v1.0.0/install_mac.sh | bash -s -- claude global
+curl -fsSL https://raw.githubusercontent.com/chat-prompt/write-post/v1.0.1/install_mac.sh | bash -s -- claude global
 ls ~/.claude/skills/write-post/SKILL.md
 ```
 
 ```powershell
 # Windows
-$env:WP_TOOLS="claude"; $env:WP_SCOPE="global"; iwr -useb https://raw.githubusercontent.com/chat-prompt/write-post/v1.0.0/install_win.ps1 | iex
+$env:WP_TOOLS="claude"; $env:WP_SCOPE="global"; iwr -useb https://raw.githubusercontent.com/chat-prompt/write-post/v1.0.1/install_win.ps1 | iex
 Test-Path "$env:USERPROFILE\.claude\skills\write-post\SKILL.md"
 ```
 
@@ -126,6 +126,6 @@ Test-Path "$env:USERPROFILE\.claude\skills\write-post\SKILL.md"
 
 ## 만든 사람과 라이선스
 
-지피터스에서 만들었어요. 역대 사례글 수백 편을 분석해서 검색과 AI 답변에 잘 걸리는 구조를 담았어요. 궁금한 점이나 오류는 지피터스 커뮤니티 게시판에 남겨 주세요.
+지피터스에서 스터디 멤버가 AI로 한 일을 쉽게 사례글로 정리해 제출할 수 있도록 만들었어요. 궁금한 점이나 오류는 지피터스 커뮤니티 게시판에 남겨 주세요.
 
-MIT 라이선스예요. 지피터스 멤버는 자유롭게 설치해 쓰고 고쳐도 돼요. 자세한 건 `LICENSE` 파일을 봐 주세요.
+지피터스 가입자는 설치해 쓰고 개인 용도로 수정할 수 있어요. 재배포나 판매에는 별도 허가가 필요해요. 자세한 내용은 `LICENSE`에 적어 뒀어요.

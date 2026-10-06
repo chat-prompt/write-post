@@ -1,7 +1,7 @@
 name: install-test
 
 # 설치 스크립트를 실제 윈도우(PowerShell 5.1·7)와 맥(bash)에서 돌려 본다.
-# 파일 28개(install.json 포함)가 제자리에 오는지, 잘못된 도구 이름이면 멈추는지, 재설치 때 다른 파일이 남는지.
+# 파일 27개(install.json 포함)가 제자리에 오는지, 잘못된 도구 이름이면 멈추는지, 재설치 때 다른 파일이 남는지.
 on:
   push:
     branches: [member-seo-geo, main]
@@ -71,7 +71,7 @@ jobs:
           $skill = "$env:USERPROFILE\.claude\skills\write-post"
           if (-not (Test-Path "$skill\SKILL.md")) { throw "SKILL.md missing" }
           $n = (Get-ChildItem -Recurse -File $skill).Count
-          if ($n -ne 28) { throw "file count is not 28: $n" }
+          if ($n -ne 27) { throw "file count is not 27: $n" }
           $rec = Get-Content "$skill\install.json" -Raw -Encoding UTF8 | ConvertFrom-Json
           if ($rec.tools.Count -ne 2) { throw "install.json tools not 2: $($rec.tools)" }
           if (-not (Test-Path "$env:USERPROFILE\.codex\skills\write-post\SKILL.md")) { throw "codex not installed" }
@@ -83,10 +83,12 @@ jobs:
           $skill = "$env:USERPROFILE\.claude\skills\write-post"
           New-Item -ItemType Directory -Force "$skill\node_modules\x" | Out-Null
           "keep" | Set-Content "$skill\my-note.md"
+          "old" | Set-Content "$skill\scripts\gen-image.mjs"
           $env:WP_TOOLS = "claude"; $env:WP_SCOPE = "global"
           iwr -useb "$env:WRITE_POST_REPO_URL/install_win.ps1" | iex
           if (-not (Test-Path "$skill\my-note.md")) { throw "reinstall removed member file" }
           if (-not (Test-Path "$skill\node_modules\x")) { throw "reinstall removed node_modules" }
+          if (Test-Path "$skill\scripts\gen-image.mjs") { throw "old API image script remains" }
           "OK: kept"
       - name: unknown tool must fail (throw, console stays open)
         shell: powershell
@@ -174,7 +176,7 @@ jobs:
           $skill = "$env:USERPROFILE\.claude\skills\write-post"
           if (-not (Test-Path "$skill\SKILL.md")) { throw "SKILL.md missing" }
           $n = (Get-ChildItem -Recurse -File $skill).Count
-          if ($n -ne 28) { throw "file count is not 28: $n" }
+          if ($n -ne 27) { throw "file count is not 27: $n" }
           $rec = Get-Content "$skill\install.json" -Raw -Encoding UTF8 | ConvertFrom-Json
           if ($rec.tools.Count -ne 2) { throw "install.json tools not 2: $($rec.tools)" }
           if (-not (Test-Path "$env:USERPROFILE\.codex\skills\write-post\SKILL.md")) { throw "codex not installed" }
@@ -186,10 +188,12 @@ jobs:
           $skill = "$env:USERPROFILE\.claude\skills\write-post"
           New-Item -ItemType Directory -Force "$skill\node_modules\x" | Out-Null
           "keep" | Set-Content "$skill\my-note.md"
+          "old" | Set-Content "$skill\scripts\gen-image.mjs"
           $env:WP_TOOLS = "claude"; $env:WP_SCOPE = "global"
           iwr -useb "$env:WRITE_POST_REPO_URL/install_win.ps1" | iex
           if (-not (Test-Path "$skill\my-note.md")) { throw "reinstall removed member file" }
           if (-not (Test-Path "$skill\node_modules\x")) { throw "reinstall removed node_modules" }
+          if (Test-Path "$skill\scripts\gen-image.mjs") { throw "old API image script remains" }
           "OK: kept"
       - name: unknown tool must fail (throw, console stays open)
         shell: pwsh
@@ -234,12 +238,14 @@ jobs:
           mkdir -p /tmp/proj && cd /tmp/proj
           bash "$GITHUB_WORKSPACE/install_mac.sh" " Claude " Project </dev/null
           test -f .claude/skills/write-post/SKILL.md
-          [ "$(find .claude/skills/write-post -type f | wc -l)" -eq 28 ]
+          [ "$(find .claude/skills/write-post -type f | wc -l)" -eq 27 ]
           bash "$GITHUB_WORKSPACE/install_mac.sh" claude,codex project </dev/null
           node -e "const j=JSON.parse(require('fs').readFileSync('.claude/skills/write-post/install.json','utf8')); if(j.tools.length!==2) throw new Error('tools '+JSON.stringify(j.tools)); console.log('install.json ok', j.tools)"
           echo keep > .claude/skills/write-post/my-note.md
+          echo old > .claude/skills/write-post/scripts/gen-image.mjs
           bash "$GITHUB_WORKSPACE/install_mac.sh" claude project </dev/null
           test -f .claude/skills/write-post/my-note.md
+          test ! -f .claude/skills/write-post/scripts/gen-image.mjs
           if bash "$GITHUB_WORKSPACE/install_mac.sh" claude,banana project </dev/null; then echo "banana를 거르지 못함"; exit 1; fi
           node .claude/skills/write-post/scripts/find-tags.mjs "24기" | head -c 200
           echo; echo OK

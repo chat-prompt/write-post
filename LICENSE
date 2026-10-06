@@ -1,21 +1,9 @@
-MIT License
+Copyright (c) 2026 GPTers. All rights reserved.
 
-Copyright (c) 2026 GPTers
+지피터스(gpters.org) 가입자는 write-post를 내려받아 설치하고,
+자신의 사례글 작성에 사용하거나 개인 사용을 위해 수정할 수 있습니다.
+재배포, 판매, 또는 제3자에게 제공하는 서비스에 사용하는 것은
+지피터스의 별도 허가가 필요합니다.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+이미 MIT 라이선스로 공개된 v1.0.0 사본에 부여된 권리는
+이 안내로 취소되지 않습니다. 소프트웨어는 보증 없이 제공됩니다.
