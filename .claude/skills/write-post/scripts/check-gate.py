@@ -127,7 +127,7 @@ def main():
     # 8-1 분량·소제목 (구글 상위 300페이지: 2,000자 미만 개인 글은 1~3위 없음, 중앙값 4,100자, H2 5~7개)
     prose = re.sub(r"```.*?```", "", body, flags=re.S); prose = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", prose); prose = re.sub(r"^#.*$", "", prose, flags=re.M)
     nchar = len(re.sub(r"\s", "", prose))
-    warn("글 길이", nchar >= 2000, f"{nchar:,}자예요. 작업 과정이 빠졌는지 확인하고, 기록에 더 없으면 이대로 내도 돼요")
+    warn("글 길이", nchar >= 2000, f"{nchar:,}자예요. 2,000자보다 짧아요. 작업 과정이 빠졌는지 확인하고, 기록에 더 없으면 이대로 내도 돼요")
     warn("글 길이 목표", nchar >= 2500, f"{nchar:,}자예요. 기록에 빠진 과정이나 결과가 있으면 더해 주세요")
     h2s = re.findall(r"^##\s+(.+)$", body, flags=re.M)
     warn("소제목 수", 5 <= len(h2s) <= 7, f"{len(h2s)}개예요. 5~7개가 읽기 좋아요")
