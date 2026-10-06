@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // AI 그림 한 장을 만든다. 구글 제미나이 이미지 모델을 쓴다.
 //   node gen-image.mjs --prompt "..." --out ./case-post-images/hero.png [--model gemini-2.5-flash-image] [--ratio 16:9]
-// API 키는 GEMINI_API_KEY 환경변수 → ~/.gpters/write-post/keys.json 의 "gemini" 순으로 찾는다.
+// API 키는 GEMINI_API_KEY 환경변수에서만 받는다(채팅·명령 인자로 받지 않는다). 없으면 종료 코드 2로 그림 없이 간다.
+//   (멤버가 직접 ~/.gpters/write-post/keys.json 에 {"gemini":"키"}를 넣어 둔 경우도 읽는다.)
 // 종료 코드: 0 성공 / 2 API 키 없음 / 3 API 오류(한도·결제·모델) / 4 인자 오류
 import fs from 'node:fs'
 import path from 'node:path'
@@ -15,21 +16,9 @@ for (let i = 0; i < args.length; i++) {
   else if (a === '--out') opt.out = args[++i]
   else if (a === '--model') opt.model = args[++i]
   else if (a === '--ratio') opt.ratio = args[++i]
-  else if (a === '--save-key') opt.saveKey = args[++i]
 }
 
 const keyFile = path.join(os.homedir(), '.gpters', 'write-post', 'keys.json')
-
-if (opt.saveKey) {
-  fs.mkdirSync(path.dirname(keyFile), { recursive: true })
-  let cur = {}
-  try { cur = JSON.parse(fs.readFileSync(keyFile, 'utf8')) } catch {}
-  cur.gemini = opt.saveKey.trim()
-  fs.writeFileSync(keyFile, JSON.stringify(cur, null, 2))
-  try { fs.chmodSync(keyFile, 0o600) } catch {}
-  console.log(`API 키를 저장했어요: ${keyFile}`)
-  if (!opt.prompt) process.exit(0)
-}
 
 if (!opt.prompt || !opt.out) {
   console.error('쓰는 법: node gen-image.mjs --prompt "그림 설명" --out 저장할파일.png')
@@ -39,7 +28,7 @@ if (!opt.prompt || !opt.out) {
 let key = process.env.GEMINI_API_KEY
 if (!key) { try { key = JSON.parse(fs.readFileSync(keyFile, 'utf8')).gemini } catch {} }
 if (!key) {
-  console.error('API 키가 없어요. https://aistudio.google.com/apikey 에서 받아서 --save-key 로 저장하세요.')
+  console.error('AI 그림을 쓰려면 터미널에서 GEMINI_API_KEY 환경변수를 설정하세요(채팅창에는 키를 붙여넣지 마세요). 키는 https://aistudio.google.com/apikey 에서 받아요. 설정 안 하면 그림 없이 글이 나와요.')
   process.exit(2)
 }
 
