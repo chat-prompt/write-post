@@ -53,7 +53,7 @@ def main():
     if a.keyword:
         pos = title.find(a.keyword)
         check("제목에 검색어", 0 <= pos <= 20, f"'{a.keyword}' 위치 {pos} (앞 20자 안)")
-    warn("제목 길이", 25 <= len(title) <= 45, f"{len(title)}자예요. 검색에 잘 걸리는 제목은 30자 안팎이에요")
+    warn("제목 길이", 25 <= len(title) <= 45, f"{len(title)}자예요. 25~35자가 목표고 45자까지 괜찮아요")
     warn("제목 표현", not re.search(r"써보기|써봤|해봤|해보기|후기|미니사례|청강|도전기", title), "'후기·써보기' 같은 말은 검색 상위 글에 드물어요. 경험은 본문의 숫자와 캡처로 보여 주는 게 나아요")
     warn("제목 표현", not re.search(r"20\d\d|완벽 가이드|완벽 정리", title), "연도나 '완벽 가이드' 같은 말은 검색 상위 글에 드물어요")
     check("제목에 기수·시리즈 표기 없음", not re.search(r"\[[^\]]*\d+기[^\]]*\]|\(\d+부\)|#\d+", title), title[:60])

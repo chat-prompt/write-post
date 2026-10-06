@@ -71,7 +71,7 @@ jobs:
           $skill = "$env:USERPROFILE\.claude\skills\write-post"
           if (-not (Test-Path "$skill\SKILL.md")) { throw "SKILL.md missing" }
           $n = (Get-ChildItem -Recurse -File $skill).Count
-          if ($n -ne 27) { throw "file count is not 27: $n" }
+          if ($n -ne 28) { throw "file count is not 28: $n" }
           $rec = Get-Content "$skill\install.json" -Raw -Encoding UTF8 | ConvertFrom-Json
           if ($rec.tools.Count -ne 2) { throw "install.json tools not 2: $($rec.tools)" }
           if (-not (Test-Path "$env:USERPROFILE\.codex\skills\write-post\SKILL.md")) { throw "codex not installed" }
@@ -174,7 +174,7 @@ jobs:
           $skill = "$env:USERPROFILE\.claude\skills\write-post"
           if (-not (Test-Path "$skill\SKILL.md")) { throw "SKILL.md missing" }
           $n = (Get-ChildItem -Recurse -File $skill).Count
-          if ($n -ne 27) { throw "file count is not 27: $n" }
+          if ($n -ne 28) { throw "file count is not 28: $n" }
           $rec = Get-Content "$skill\install.json" -Raw -Encoding UTF8 | ConvertFrom-Json
           if ($rec.tools.Count -ne 2) { throw "install.json tools not 2: $($rec.tools)" }
           if (-not (Test-Path "$env:USERPROFILE\.codex\skills\write-post\SKILL.md")) { throw "codex not installed" }
@@ -234,7 +234,7 @@ jobs:
           mkdir -p /tmp/proj && cd /tmp/proj
           bash "$GITHUB_WORKSPACE/install_mac.sh" " Claude " Project </dev/null
           test -f .claude/skills/write-post/SKILL.md
-          [ "$(find .claude/skills/write-post -type f | wc -l)" -eq 27 ]
+          [ "$(find .claude/skills/write-post -type f | wc -l)" -eq 28 ]
           bash "$GITHUB_WORKSPACE/install_mac.sh" claude,codex project </dev/null
           node -e "const j=JSON.parse(require('fs').readFileSync('.claude/skills/write-post/install.json','utf8')); if(j.tools.length!==2) throw new Error('tools '+JSON.stringify(j.tools)); console.log('install.json ok', j.tools)"
           echo keep > .claude/skills/write-post/my-note.md
