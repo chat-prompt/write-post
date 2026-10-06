@@ -4,7 +4,7 @@
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
 
-$RepoUrl = if ($env:WRITE_POST_REPO_URL) { $env:WRITE_POST_REPO_URL } else { "https://raw.githubusercontent.com/chat-prompt/write-post/main" }
+$RepoUrl = if ($env:WRITE_POST_REPO_URL) { $env:WRITE_POST_REPO_URL } else { "https://raw.githubusercontent.com/chat-prompt/write-post/v1.0.0" }
 # 무입력 설치: $env:WP_TOOLS = "claude,codex" (또는 all), $env:WP_SCOPE = "global"|"project". AI 에이전트가 대신 설치할 때 쓴다.
 $SkillFiles = @(
     "SKILL.md",

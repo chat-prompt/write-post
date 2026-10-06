@@ -1,7 +1,7 @@
 name: install-test
 
 # 설치 스크립트를 실제 윈도우(PowerShell 5.1·7)와 맥(bash)에서 돌려 본다.
-# 파일 20개가 제자리에 오는지, 잘못된 도구 이름이면 멈추는지, 재설치 때 다른 파일이 남는지.
+# 파일 28개(install.json 포함)가 제자리에 오는지, 잘못된 도구 이름이면 멈추는지, 재설치 때 다른 파일이 남는지.
 on:
   push:
     branches: [member-seo-geo, main]

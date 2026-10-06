@@ -52,7 +52,7 @@ https://github.com/chat-prompt/write-post 이 스킬 설치해 줘
 ## 자주 묻는 것
 
 **캡처를 못 찍었는데요?**
-못 찍어도 글은 나와요. 캡처 자리는 안내에 적어 두니 나중에 넣어도 되고, AI한테 그림을 그려 달라고 할 수도 있어요. AI 그림은 처음 한 번 구글 API 키가 필요해요. 채팅창에 붙여 넣지 말고, 터미널에서 환경변수 `GEMINI_API_KEY`로 넣는 게 안전해요(자세한 방법은 스킬이 안내해요).
+못 찍어도 글은 나와요. 캡처 자리는 안내에 적어 두니 나중에 넣어도 되고, AI한테 그림을 그려 달라고 할 수도 있어요. AI 그림은 구글 API 키가 필요해요. 채팅창에 붙여 넣지 말고, 터미널의 가려진 입력으로 `GEMINI_API_KEY` 환경변수를 설정하세요(자세한 방법은 스킬이 안내해요).
 
 **AI 그림은 돈이 드나요?**
 구글 API 키 발급은 무료예요. 그림은 한 장에 수십 원 정도 들 수 있는데, 구글 요금에 따라 달라져요(2026년 10월 기준). 정확한 요금은 구글 AI 스튜디오 가격 안내를 봐 주세요. 그림이 부담되면 안 써도 글은 나와요.
@@ -89,13 +89,13 @@ https://github.com/chat-prompt/write-post 이 스킬 설치해 줘
 Mac / Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/chat-prompt/write-post/main/install_mac.sh | bash
+curl -fsSL https://raw.githubusercontent.com/chat-prompt/write-post/v1.0.0/install_mac.sh | bash
 ```
 
 Windows (PowerShell)
 
 ```powershell
-iwr -useb https://raw.githubusercontent.com/chat-prompt/write-post/main/install_win.ps1 | iex
+iwr -useb https://raw.githubusercontent.com/chat-prompt/write-post/v1.0.0/install_win.ps1 | iex
 ```
 
 설치할 때 어떤 AI 도구에 넣을지(Claude Code, OpenCode, Codex CLI, Gemini CLI, Antigravity)를 골라요. 설치 뒤 `/write-post` 명령은 AI 도구를 다시 켠 뒤부터 보여요. 다시 켜기 싫으면 그 창에 "write-post로 사례글 써 줘"라고 치면 바로 돼요.
@@ -112,13 +112,13 @@ iwr -useb https://raw.githubusercontent.com/chat-prompt/write-post/main/install_
 
 ```bash
 # Mac / Linux. 도구: claude | codex | gemini | opencode | antigravity | all (쉼표로 여러 개)
-curl -fsSL https://raw.githubusercontent.com/chat-prompt/write-post/main/install_mac.sh | bash -s -- claude global
+curl -fsSL https://raw.githubusercontent.com/chat-prompt/write-post/v1.0.0/install_mac.sh | bash -s -- claude global
 ls ~/.claude/skills/write-post/SKILL.md
 ```
 
 ```powershell
 # Windows
-$env:WP_TOOLS="claude"; $env:WP_SCOPE="global"; iwr -useb https://raw.githubusercontent.com/chat-prompt/write-post/main/install_win.ps1 | iex
+$env:WP_TOOLS="claude"; $env:WP_SCOPE="global"; iwr -useb https://raw.githubusercontent.com/chat-prompt/write-post/v1.0.0/install_win.ps1 | iex
 Test-Path "$env:USERPROFILE\.claude\skills\write-post\SKILL.md"
 ```
 

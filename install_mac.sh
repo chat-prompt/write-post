@@ -2,7 +2,7 @@
 
 # write-post installer for Mac/Linux - Multi-tool support
 
-REPO_URL="${WRITE_POST_REPO_URL:-https://raw.githubusercontent.com/chat-prompt/write-post/main}"
+REPO_URL="${WRITE_POST_REPO_URL:-https://raw.githubusercontent.com/chat-prompt/write-post/v1.0.0}"
 SKILL_FILES=(
     "SKILL.md"
     "VERSION"

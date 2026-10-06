@@ -238,10 +238,11 @@ node <skill>/scripts/scan-session.mjs                 # 현재 폴더의 Claude 
 AI 그림은 구글 API 키가 있어야 해요. 키는 대화에 남으면 안 되니 터미널에 직접 넣어요.
 1. https://aistudio.google.com/apikey 에서 "API 키 만들기"로 키를 받아요(발급 무료).
 2. 터미널(클로드 코드 창 말고, 별도 터미널)을 열어요.
-3. Mac/리눅스: 아래를 치고 Enter. 키 값은 본인 것으로 바꿔요.
-     echo 'export GEMINI_API_KEY=여기에_키' >> ~/.zshrc && source ~/.zshrc
-   Windows(PowerShell): setx GEMINI_API_KEY "여기에_키"  (새 창부터 적용)
-4. AI 도구를 껐다 켜고 다시 글을 써요. 이제 "AI가 그려 줘"가 돼요.
+3. Mac/리눅스: 터미널에서 아래 명령을 실행하고, 표시되는 입력 칸에 키를 붙여 넣고 Enter를 누르세요. 입력 중에는 키가 화면에 보이지 않아요.
+     printf 'Gemini API 키: '; IFS= read -rs GEMINI_API_KEY; printf '\n'; export GEMINI_API_KEY
+   Windows(PowerShell): 아래 명령을 실행하고, 표시되는 입력 칸에 키를 붙여 넣고 Enter를 누르세요.
+     $s = Read-Host 'Gemini API 키' -AsSecureString; $p = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($s); try { $env:GEMINI_API_KEY = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($p) } finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($p) }
+4. 같은 터미널에서 AI 도구를 다시 실행하세요. 키는 이 터미널을 닫으면 사라져요. 이제 "AI가 그려 줘"가 돼요.
    (그림은 한 장에 수십 원 정도 들 수 있어요. 2026년 10월 기준이고 구글 요금에 따라 달라져요.)
 ```
 
@@ -418,7 +419,7 @@ python3 <skill>/scripts/check-ai-tell.py ./AI_CASE_STUDY.md
 - `scripts/copy-post.mjs`: 본문을 깨끗한 HTML(이미지 포함)로 클립보드에 복사, 제목 복사(`--title`)
 - `scripts/check-update.mjs`: 설치본이 최신인지 확인(VERSION·install.json 비교). 새 버전을 낼 때 `VERSION`을 올린다(CI가 안 올리면 막는다)
 - `scripts/capture-url.mjs`: 링크를 열어 화면 찍기(공개 페이지, playwright 필요)
-- `scripts/gen-image.mjs`: AI 그림 한 장(제미나이). API 키는 `~/.gpters/write-post/keys.json`
+- `scripts/gen-image.mjs`: AI 그림 한 장(제미나이). API 키는 `GEMINI_API_KEY` 환경변수에서만 읽는다.
 - `references/tpl-compare.html`, `tpl-two-roles.html`, `eli5-template.html`, `_diagram.css`: 카드 템플릿
 
 원저자: DEVLOG 가이드와 게시글 템플릿은 write-post 3.1.0(송다혜), 검색·AI 인용 구조와 게이트는 지피터스 ax-post(2026-09-18)에서 가져와 2026-09-23 스터디 멤버용으로 고쳤고, 2026-09-28 실제 세션 4편 검증 뒤 빠른 흐름으로 줄이고 구글 상위 300페이지 분석을 반영했다.
