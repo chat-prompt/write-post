@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// 멤버 공개 글에서 숫자만 재서 짧은 문체 파일을 만든다. 글을 흉내 내지 않는다(어미 비율·문장 길이·느낌표·괄호만).
+// 멤버 공개 글에서 숫자만 재서 짧은 문체 파일을 만든다. 글을 흉내 내지 않는다(어미 비율, 문장 길이, 느낌표, 괄호만).
 // 사용법: node voice-profile.mjs ./my-posts.json --out ~/.gpters/write-post/voice.md [--min 3]
-// 종료 코드: 0 만듦 · 3 글이 3편 미만(기본 문체로) · 2 입력 오류
+// 종료 코드: 0 만듦, 3 글이 3편 미만(기본 문체로), 2 입력 오류
 import fs from 'node:fs'
 import path from 'node:path'
 const args = process.argv.slice(2)
@@ -54,7 +54,7 @@ const emojiLine = '이모지는 게시글에 넣지 않는다.'
 
 const md = `# 내 문체 (자동, ${today}, 공개 글 ${posts.length}편 ${sents}문장 기준)
 
-제 공개 글에서 숫자만 재서 만든 파일이에요. 아래 두 절만 옮기고, 말버릇·오타·유행어·이모지는 흉내 내지 않아요. 글마다 똑같이 들리지 않게 한 문단 안에서 어미를 섞어요.
+제 공개 글에서 숫자만 재서 만든 파일이에요. 아래 두 절만 옮기고, 말버릇, 오타, 유행어, 이모지는 흉내 내지 않아요. 글마다 똑같이 들리지 않게 한 문단 안에서 어미를 섞어요.
 
 ## 종결어미
 - ${endingLine}
@@ -65,11 +65,11 @@ const md = `# 내 문체 (자동, ${today}, 공개 글 ${posts.length}편 ${sent
 - ${bangLine} ${parenLine} ${emojiLine}
 
 ## 그대로 두는 것 (지피터스 공통)
-- 줄표(—, –) 금지, 범위는 말로("2주에서 4주"). 첫째·둘째·셋째 금지. "박습니다" 계열 금지.
-- 헤지("~인 것 같습니다", "~일 수도") 금지. 격언으로 맺지 않는다. 3인칭·AI 시점("사용자가 물었다") 금지. 1인칭은 "제가", "저".
+- 줄표(—, –) 금지, 범위는 말로("2주에서 4주"). 첫째, 둘째, 셋째 금지. "박습니다" 계열 금지.
+- 헤지("~인 것 같습니다", "~일 수도") 금지. 격언으로 맺지 않는다. 3인칭, AI 시점("사용자가 물었다") 금지. 1인칭은 "제가", "저".
 - AI에게 친 말은 오타까지 원문 그대로. 막힌 순간의 감정 한 줄은 기록에 있는 내 말로만. 모르는 건 모른다고, 안 된 건 안 됐다고.
 - 추상 형용사("최고의", "놀라운") 금지. 비유는 한 편에 하나. 낯선 용어는 처음 나올 때 한 줄로 푼다.
 `
 if (out) { fs.mkdirSync(path.dirname(out), { recursive: true }); fs.writeFileSync(out, md) }
-console.log(`문체 파일을 만들었어요: 공개 글 ${posts.length}편(스킬이 쓴 글 ${all.length - posts.length}편 제외) · ${endingLine} 평균 ${avg}자`)
+console.log(`문체 파일을 만들었어요: 공개 글 ${posts.length}편(스킬이 쓴 글 ${all.length - posts.length}편 제외), ${endingLine} 평균 ${avg}자`)
 if (!out) process.stdout.write('\n' + md)

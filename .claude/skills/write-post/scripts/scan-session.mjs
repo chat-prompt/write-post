@@ -3,7 +3,7 @@
 // 사용법:
 //   node scan-session.mjs                          # 현재 폴더의 Claude Code + Codex CLI 세션
 //   node scan-session.mjs --cwd /path/to/project   # 다른 폴더
-//   node scan-session.mjs --paste chat.txt         # 붙여 넣은 대화(챗GPT·클로드 웹 등)
+//   node scan-session.mjs --paste chat.txt         # 붙여 넣은 대화(챗GPT, 클로드 웹 등)
 //   옵션: --out DEVLOG.md  --json materials.json  --days 30 (최근 N일 세션만)
 // 출력: DEVLOG.md(사람이 읽는 기록), materials.json(재료 여덟 가지 후보). 찾지 못한 칸은 null.
 import { readFileSync, writeFileSync, readdirSync, existsSync, statSync, openSync, readSync, closeSync, createReadStream } from 'node:fs'
@@ -226,7 +226,7 @@ async function readCodex(otherHasExact) {
         if (/(exit code:?\s*[1-9]|^error|Error:|Traceback)/im.test(out.slice(0, 400))) fileTurns.push({ t, who: 'user', text: '', tools: [], errors: [out.slice(0, 300)], src: f })
       }
     }
-    // 이 파일의 AI 턴에 모델·토큰을 채운다
+    // 이 파일의 AI 턴에 모델, 토큰을 채운다
     const ais = fileTurns.filter(x => x.who === 'ai'); if (ais.length) { ais[ais.length - 1].out_tokens = outTok; for (const a of ais) a.model = a.model || model }
     const kept = exact ? fileTurns : keepRelevantBlocks(fileTurns)
     if (kept.length) { turns.push(...kept); used.push(f) }
@@ -247,7 +247,7 @@ else {
   if (cx.skipped.length) console.error(`코덱스 기록 ${cx.skipped.length}개가 400MB를 넘어 건너뛰었어요. 그 작업은 대화를 붙여 넣어 주세요.`)
 }
 if (!turns.length) {
-  console.error(paste ? '붙여 넣은 대화에서 턴을 찾지 못했어요.' : `이 폴더의 Claude Code·Codex 세션을 찾지 못했어요: ${cwd}`)
+  console.error(paste ? '붙여 넣은 대화에서 턴을 찾지 못했어요.' : `이 폴더의 Claude Code, Codex 세션을 찾지 못했어요: ${cwd}`)
   process.exit(2)
 }
 // 지난 주 과제와 이번 주 과제가 같은 폴더에 있으면 마지막 windowDays일만 남긴다
@@ -378,10 +378,10 @@ const materials = {
 }
 
 // ---------- 3. DEVLOG ----------
-// 날짜·시각은 이 컴퓨터의 시간대(멤버가 사는 곳). UTC로 적으면 한국 새벽 작업이 전날이 된다.
+// 날짜, 시각은 이 컴퓨터의 시간대(멤버가 사는 곳). UTC로 적으면 한국 새벽 작업이 전날이 된다.
 const fmt = t => t ? `${localDate(t)} ${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}` : '시각 없음'
 const L = []
-L.push(`# ${basename(cwd)} - 개발 로그`, '', `생성: ${localDate(new Date())} · 출처: ${materials.source} · 기록 ${files.length}개 · 사용자 메시지 ${users.length}개${truncatedFrom ? ` (앞 ${truncatedFrom}개는 잘라 냄, --max-requests로 조절)` : ''} · AI 응답 ${ais.length}개 · 최근 ${days}일`, '')
+L.push(`# ${basename(cwd)} - 개발 로그`, '', `생성: ${localDate(new Date())}, 출처: ${materials.source}, 기록 ${files.length}개, 사용자 메시지 ${users.length}개${truncatedFrom ? ` (앞 ${truncatedFrom}개는 잘라 냄, --max-requests로 조절)` : ''}, AI 응답 ${ais.length}개, 최근 ${days}일`, '')
 L.push(`## ${materials.date || '날짜 미상 [멤버에게 확인]'}`, '')
 let n = 0
 for (let i = 0; i < turns.length; i++) {
@@ -413,14 +413,14 @@ for (const b of blocks) L.push(`  - ${fmt(b.start)} ~ ${fmt(b.end).slice(11)} ($
 L.push('')
 L.push('## 재료 후보', '', `- 처음 요청: ${materials.first_request ? '"' + materials.first_request.split('\n')[0].slice(0, 120) + '"' : '없음'}`)
 for (const s of materials.stuck_moments) L.push(`- 막힌 순간(${s.kind}): ${s.text.replace(/\s+/g, ' ').slice(0, 160)}${s.next_user ? ' → 그 뒤 멤버: "' + s.next_user.replace(/\s+/g, ' ').slice(0, 100) + '"' : ''}`)
-L.push(`- 숫자: 파일 작성 ${written.size}개 · 수정 ${edited.size}개 (명령으로 만든 파일은 못 센다) · 명령 ${cmds.length}회 · 도구 에러 ${errorsN}회 · 커밋 ${commits}회 · 배포 명령 ${deploys}회`)
-L.push(`- 모델: ${models.join(', ') || '없음'} · 출력 토큰: ${outTokens || '없음'} · 비용: 로그에 없음`)
-L.push(`- 결과물: ${[...materials.results.files, ...materials.results.mentioned].join(', ') || '파일 없음'}${materials.results.urls.length ? ' · 주소: ' + materials.results.urls.slice(0, 5).join(' ') : ''}`)
+L.push(`- 숫자: 파일 작성 ${written.size}개, 수정 ${edited.size}개 (명령으로 만든 파일은 못 센다), 명령 ${cmds.length}회, 도구 에러 ${errorsN}회, 커밋 ${commits}회, 배포 명령 ${deploys}회`)
+L.push(`- 모델: ${models.join(', ') || '없음'}, 출력 토큰: ${outTokens || '없음'}, 비용: 로그에 없음`)
+L.push(`- 결과물: ${[...materials.results.files, ...materials.results.mentioned].join(', ') || '파일 없음'}${materials.results.urls.length ? ', 주소: ' + materials.results.urls.slice(0, 5).join(' ') : ''}`)
 L.push(`- 아직 안 된 것: ${materials.remaining.map(r => r.replace(/\s+/g, ' ').slice(0, 100)).join(' / ') || '없음'}`)
 L.push(`- 세션에서 연 자료: ${materials.resources_opened.join(' ') || '없음'}`, '')
 writeFileSync(outMd, L.join('\n'))
 writeFileSync(outJson, JSON.stringify(materials, null, 2))
 const outFull = outJson.replace(/\.json$/, '-full.json')
 writeFileSync(outFull, JSON.stringify({ first_request: firstReq ? firstReq.text : null, user_messages: users.map(u => u.text), stuck_moments: stuck.slice(0, 8) }, null, 2))
-console.log(`✓ ${outMd} (요청 ${users.length}개, 막힌 순간 ${stuck.length}개, ${workMin != null ? '작업 ' + workMin + '분' : '시각 없음'}) · ${outJson}`)
-if (paste) console.log('붙여 넣은 대화라 날짜·걸린 시간·모델은 비어 있어요. ②에서 묻는다.')
+console.log(`✓ ${outMd} (요청 ${users.length}개, 막힌 순간 ${stuck.length}개, ${workMin != null ? '작업 ' + workMin + '분' : '시각 없음'}), ${outJson}`)
+if (paste) console.log('붙여 넣은 대화라 날짜, 걸린 시간, 모델은 비어 있어요. ②에서 묻는다.')

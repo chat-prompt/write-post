@@ -109,7 +109,8 @@ function copyWin() {
   }
   writeFileSync(tmp + '.html', cf(fragment), 'utf8')
   writeFileSync(tmp + '.txt', md, 'utf8')
-  const ps = `Add-Type -AssemblyName System.Windows.Forms
+  const ps = `$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName System.Windows.Forms
 $h = [IO.File]::ReadAllText('${tmp.replace(/'/g, "''")}.html', [Text.Encoding]::UTF8)
 $t = [IO.File]::ReadAllText('${tmp.replace(/'/g, "''")}.txt', [Text.Encoding]::UTF8)
 $d = New-Object Windows.Forms.DataObject
@@ -130,6 +131,7 @@ function copyLinux() {
 
 let copied = false
 try { copied = process.platform === 'darwin' ? copyMac() : process.platform === 'win32' ? copyWin() : copyLinux() } catch { copied = false }
-if (copied) { console.log(`복사했어요. 본문 칸에서 전체 선택 → 붙여 넣기 하세요.${embedded ? ' 그림도 같이 들어가요.' : ''}${skipped.length ? ` (못 심은 그림: ${skipped.join(', ')})` : ''}`); process.exit(0) }
+const keys = process.platform === 'darwin' ? 'Cmd+A → Cmd+V' : 'Ctrl+A → Ctrl+V'
+if (copied) { console.log(`복사했어요. 게시판 본문 칸 안내 글을 한 번 클릭하고 ${keys}(전체 선택 → 붙여 넣기) 하세요.${embedded ? ' 그림도 같이 들어가요.' : ''}${skipped.length ? ` (못 심은 그림: ${skipped.join(', ')})` : ''}`); process.exit(0) }
 console.error('클립보드에 못 넣었어요. AI_CASE_STUDY.md를 열어 첫 줄 제목은 빼고 전체 복사해 주세요.')
 process.exit(2)
