@@ -131,7 +131,7 @@ function copyLinux() {
 
 let copied = false
 try { copied = process.platform === 'darwin' ? copyMac() : process.platform === 'win32' ? copyWin() : copyLinux() } catch { copied = false }
-const keys = process.platform === 'darwin' ? 'Cmd+A → Cmd+V' : 'Ctrl+A → Ctrl+V'
-if (copied) { console.log(`복사했어요. 게시판 본문 칸 안내 글을 한 번 클릭하고 ${keys}(전체 선택 → 붙여 넣기) 하세요.${embedded ? ' 그림도 같이 들어가요.' : ''}${skipped.length ? ` (못 심은 그림: ${skipped.join(', ')})` : ''}`); process.exit(0) }
+const keys = process.platform === 'darwin' ? 'Cmd+A, Cmd+V' : 'Ctrl+A, Ctrl+V'
+if (copied) { console.log(`복사해 뒀어요. 글쓰기 화면 본문 칸을 한 번 클릭하고 ${keys} 두 번만 누르세요.${embedded ? ' 그림도 같이 들어가요.' : ''}${skipped.length ? ` (못 심은 그림: ${skipped.join(', ')})` : ''}`); process.exit(0) }
 console.error('클립보드에 못 넣었어요. AI_CASE_STUDY.md를 열어 첫 줄 제목은 빼고 전체 복사해 주세요.')
 process.exit(2)
