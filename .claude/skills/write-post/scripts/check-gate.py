@@ -136,7 +136,7 @@ def main():
     dots = prose_nocode.count("\u00b7")
     check("가운뎃점 없음", dots == 0, f"{dots}개 (쉼표나 '와/과'로)")
     reuse = [m for m in re.findall(r"```[^\n]*\n(.*?)```", body, flags=re.S) if re.search(r"\[[^\]\n]{1,30}\]", m)]
-    check("따라 할 프롬프트", bool(reuse), f"[바꿀 부분]이 표시된 코드블록 {len(reuse)}개. 글 끝에 다듬은 프롬프트를 1~2개 넣어 주세요")
+    warn("따라 할 프롬프트", bool(reuse), f"[바꿀 부분]이 표시된 코드블록이 {len(reuse)}개예요. 요청을 고쳐 가며 좋아졌다면 다듬은 프롬프트 하나 있으면 좋겠죠?")
     cap_in_code = [m for m in re.findall(r"```[^\n]*\n(.*?)```", body, flags=re.S) if "▲" in m]
     check("캡션이 코드블록 밖에", not cap_in_code, f"코드블록 안 ▲ 캡션 {len(cap_in_code)}개")
     warn("소제목 수", 5 <= len(h2s) <= 7, f"{len(h2s)}개예요. 5~7개가 읽기 좋아요")
