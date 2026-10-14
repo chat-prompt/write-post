@@ -89,13 +89,13 @@ https://github.com/chat-prompt/write-post 이 스킬 설치해 줘
 Mac / Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/chat-prompt/write-post/v1.0.1/install_mac.sh | bash
+curl -fsSL https://raw.githubusercontent.com/chat-prompt/write-post/v1.0.2/install_mac.sh | bash
 ```
 
 Windows (PowerShell)
 
 ```powershell
-iwr -useb https://raw.githubusercontent.com/chat-prompt/write-post/v1.0.1/install_win.ps1 | iex
+iwr -useb https://raw.githubusercontent.com/chat-prompt/write-post/v1.0.2/install_win.ps1 | iex
 ```
 
 설치할 때 어떤 AI 도구에 넣을지(Claude Code, OpenCode, Codex CLI, Gemini CLI, Antigravity)를 골라요. 설치 뒤 `/write-post` 명령은 AI 도구를 다시 켠 뒤부터 보여요. 다시 켜기 싫으면 그 창에 "write-post로 사례글 써 줘"라고 치면 바로 돼요.
@@ -112,13 +112,13 @@ iwr -useb https://raw.githubusercontent.com/chat-prompt/write-post/v1.0.1/instal
 
 ```bash
 # Mac / Linux. 도구: claude | codex | gemini | opencode | antigravity | all (쉼표로 여러 개)
-curl -fsSL https://raw.githubusercontent.com/chat-prompt/write-post/v1.0.1/install_mac.sh | bash -s -- claude global
+curl -fsSL https://raw.githubusercontent.com/chat-prompt/write-post/v1.0.2/install_mac.sh | bash -s -- claude global
 ls ~/.claude/skills/write-post/SKILL.md
 ```
 
 ```powershell
 # Windows
-$env:WP_TOOLS="claude"; $env:WP_SCOPE="global"; iwr -useb https://raw.githubusercontent.com/chat-prompt/write-post/v1.0.1/install_win.ps1 | iex
+$env:WP_TOOLS="claude"; $env:WP_SCOPE="global"; iwr -useb https://raw.githubusercontent.com/chat-prompt/write-post/v1.0.2/install_win.ps1 | iex
 Test-Path "$env:USERPROFILE\.claude\skills\write-post\SKILL.md"
 ```
 
